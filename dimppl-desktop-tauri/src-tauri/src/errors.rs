@@ -1,12 +1,12 @@
 use std::fmt::{Debug, Display, Formatter};
 
-use serde::Serializer;
+use serde::{Serialize, Serializer};
 
 pub struct AppError(pub anyhow::Error);
 
 pub type AppResult<T> = std::result::Result<T, AppError>;
 
-impl serde::Serialize for AppError {
+impl Serialize for AppError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         serializer.serialize_str(self.0.to_string().as_ref())
     }

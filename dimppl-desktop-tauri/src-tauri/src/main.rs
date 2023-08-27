@@ -1,9 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use crate::config::ConfigWrapper;
 use crate::database::{database_url, prepare_database};
 use crate::directories::ensure_data_dir;
-use crate::state::AppState;
 
 mod state;
 mod database;
@@ -12,6 +12,7 @@ mod schema;
 mod models;
 mod config;
 mod errors;
+mod commands;
 
 fn main() {
     ensure_data_dir();
@@ -19,7 +20,14 @@ fn main() {
     let db_url = database_url();
     println!("db url: {db_url}");
     tauri::Builder::default()
-        .manage(AppState::new().expect("error initializing app state"))
+        .manage(ConfigWrapper::default())
+        .invoke_handler(
+            tauri::generate_handler![
+                commands::list_all_podcasts,
+                commands::get_config,
+                commands::set_config
+            ]
+        )
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

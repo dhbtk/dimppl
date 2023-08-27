@@ -70,7 +70,6 @@ dependencies = [
  "bb8",
  "chrono",
  "diesel",
- "diesel-async",
  "diesel_migrations",
  "directories",
  "gethostname",
@@ -766,19 +765,6 @@ dependencies = [
  "diesel_derives",
  "libsqlite3-sys",
  "time 0.3.27",
-]
-
-[[package]]
-name = "diesel-async"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7e7974099f0d9bde0e010dd3a673555276a474f3362a7a52ab535a57b7c5056"
-dependencies = [
- "async-trait",
- "bb8",
- "diesel",
- "futures-util",
- "scoped-futures",
 ]
 
 [[package]]
@@ -2977,16 +2963,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c3733bf4cf7ea0880754e19cb5a462007c4a8c1914bff372ccc95b464f1df88"
 dependencies = [
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "scoped-futures"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1473e24c637950c9bd38763220bea91ec3e095a89f672bbd7a10d03e77ba467"
-dependencies = [
- "cfg-if",
- "pin-utils",
 ]
 
 [[package]]
