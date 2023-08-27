@@ -8,7 +8,7 @@ use diesel::prelude::*;
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
     pub id: i64,
-    pub access_key: String
+    pub access_key: String,
 }
 
 #[derive(Queryable, Selectable)]
@@ -19,5 +19,5 @@ pub struct UserDevice {
     pub user_id: i64,
     pub name: String,
     pub last_session_at: chrono::NaiveDateTime,
-    pub access_token: String
+    pub access_token: String,
 }

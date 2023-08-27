@@ -1,16 +1,13 @@
 use axum::extract::State;
 use axum::Json;
-use diesel::{ExpressionMethods, Insertable, QueryDsl, Selectable, SelectableHelper};
-use diesel::associations::HasTable;
-use diesel_async::RunQueryDsl;
-use hyper::Body;
-use rand::Rng;
+use diesel::Selectable;
+
 use serde::{Deserialize, Serialize};
 
 use crate::database::Pool;
-use crate::error_handling::AppError;
-use crate::models::{user, user_device, UserDevice};
+use crate::error_handling::AppResult;
 use crate::models::user_device::CreateDeviceRequest;
+use crate::models::{user, user_device, UserDevice};
 
 #[derive(Serialize, Deserialize, Selectable)]
 #[diesel(table_name = crate::schema::user_devices)]
@@ -23,12 +20,15 @@ impl From<UserDevice> for CreateDeviceResponse {
     fn from(value: UserDevice) -> Self {
         Self {
             name: value.name,
-            access_token: value.access_token
+            access_token: value.access_token,
         }
     }
 }
 
-pub async fn create_device(State(pool): State<Pool>, Json(create_request): Json<CreateDeviceRequest>) -> Result<Json<CreateDeviceResponse>, AppError> {
+pub async fn create_device(
+    State(pool): State<Pool>,
+    Json(create_request): Json<CreateDeviceRequest>,
+) -> AppResult<Json<CreateDeviceResponse>> {
     let mut conn = pool.get().await?;
     let user = user::find_by_access_key(&create_request.user_access_key, &mut conn).await?;
     let response = user_device::create(&create_request, &user, &mut conn).await?;
@@ -37,7 +37,11 @@ pub async fn create_device(State(pool): State<Pool>, Json(create_request): Json<
 
 #[cfg(test)]
 mod tests {
-    use axum::{body::Body, http::{Request, StatusCode}, http};
+    use axum::{
+        body::Body,
+        http,
+        http::{Request, StatusCode},
+    };
     use serial_test::serial;
     use tower::ServiceExt;
 
@@ -55,19 +59,17 @@ mod tests {
 
         let request_body = CreateDeviceRequest {
             user_access_key: user.access_key,
-            device_name: "new device".into()
+            device_name: "new device".into(),
         };
 
         let request = Request::builder()
-            .method("POST").uri("/devices")
+            .method("POST")
+            .uri("/devices")
             .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
             .body(Body::from(serde_json::to_vec(&request_body).unwrap()))
             .unwrap();
 
-        let response = app
-            .oneshot(request)
-            .await
-            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
 

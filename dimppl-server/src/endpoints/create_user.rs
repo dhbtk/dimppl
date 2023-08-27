@@ -1,16 +1,12 @@
 use axum::extract::State;
 use axum::Json;
-use diesel::{Insertable, SelectableHelper};
-use diesel::associations::HasTable;
-use diesel_async::RunQueryDsl;
-use rand::Rng;
-use serde::{Deserialize, Serialize};
-use crate::database::Pool;
-use crate::error_handling::AppError;
 
-use crate::models::{User, user};
+use crate::database::Pool;
+use crate::error_handling::AppResult;
+use serde::{Deserialize, Serialize};
+
 use crate::models::user::NewUser;
-use crate::schema::users::dsl::users;
+use crate::models::{user, User};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateUserResponse {
@@ -20,12 +16,12 @@ pub struct CreateUserResponse {
 impl From<User> for CreateUserResponse {
     fn from(value: User) -> Self {
         Self {
-            access_key: value.access_key
+            access_key: value.access_key,
         }
     }
 }
 
-pub async fn create_user(State(mut pool): State<Pool>) -> Result<Json<CreateUserResponse>, AppError> {
+pub async fn create_user(State(pool): State<Pool>) -> AppResult<Json<CreateUserResponse>> {
     let mut conn = pool.get().await?;
     let new_user = NewUser::default();
     let user = user::create(&new_user, &mut conn).await?;
@@ -51,7 +47,13 @@ mod tests {
         let (_, app) = create_test_app();
 
         let response = app
-            .oneshot(Request::builder().method("POST").uri("/user").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/user")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 

@@ -1,23 +1,25 @@
 use std::net::SocketAddr;
 
 use axum::ServiceExt;
-use dotenvy::dotenv;
 
 use crate::app::create_app;
 use crate::state::AppState;
 
-mod schema;
+mod app;
 mod database;
 mod endpoints;
-mod models;
-mod state;
-mod app;
 mod error_handling;
 mod fixtures;
+mod models;
+mod schema;
+mod state;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_target(false).compact().init();
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .compact()
+        .init();
 
     let app = create_app(AppState::new());
 

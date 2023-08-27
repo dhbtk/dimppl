@@ -1,12 +1,12 @@
-use axum::Router;
-use axum::routing::{get, post};
 use crate::endpoints::create_device::create_device;
 use crate::endpoints::create_user::create_user;
 use crate::root;
 use crate::state::AppState;
+use axum::routing::{get, post};
+use axum::Router;
 
-pub mod create_user;
 mod create_device;
+pub mod create_user;
 
 pub trait RouterExt {
     fn apply_app_routes(self) -> Self;
