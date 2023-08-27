@@ -1,9 +1,8 @@
 use std::net::SocketAddr;
 
-use axum::ServiceExt;
-
 use crate::app::create_app;
 use crate::state::AppState;
+use dotenvy::dotenv;
 
 mod app;
 mod database;
@@ -20,6 +19,7 @@ async fn main() {
         .with_target(false)
         .compact()
         .init();
+    tracing::info!("loading .env file: {:?}", dotenv());
 
     let app = create_app(AppState::new());
 

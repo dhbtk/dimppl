@@ -1,5 +1,4 @@
 use axum::Router;
-use dotenvy::dotenv;
 use tower_http::trace;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
@@ -8,8 +7,6 @@ use crate::endpoints::RouterExt;
 use crate::state::AppState;
 
 pub fn create_app(state: AppState) -> Router {
-    tracing::info!("loading .env file: {:?}", dotenv());
-
     Router::new()
         .apply_app_routes()
         .layer(
