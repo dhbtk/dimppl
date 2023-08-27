@@ -1,10 +1,17 @@
 use axum::extract::FromRef;
-use deadpool_diesel::postgres::Pool;
-use crate::database::create_database_pool;
+use crate::database::{create_database_pool, Pool};
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Pool
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            pool: create_database_pool()
+        }
+    }
 }
 
 impl AppState {

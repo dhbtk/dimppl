@@ -6,6 +6,7 @@ diesel::table! {
         user_id -> Int8,
         name -> Text,
         last_session_at -> Timestamp,
+        access_token -> Text,
     }
 }
 

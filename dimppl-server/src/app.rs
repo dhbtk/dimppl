@@ -1,34 +1,33 @@
 use axum::Router;
-use axum::routing::{get, post};
+use dotenvy::dotenv;
 use tower_http::trace;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
-use crate::endpoints::create_user::create_user;
-use crate::root;
+
+use crate::endpoints::RouterExt;
 use crate::state::AppState;
-use dotenvy::dotenv;
 
-
-pub fn create_app() -> Router {
+pub fn create_app(state: AppState) -> Router {
     tracing::info!("loading .env file: {:?}", dotenv());
 
     Router::new()
-        .route("/user", post(create_user))
-        .route("/", get(root))
+        .apply_app_routes()
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new()
                     .level(Level::INFO))
                 .on_response(trace::DefaultOnResponse::new()
                     .level(Level::INFO)))
-        .with_state(AppState::new())
+        .with_state(state)
 }
 
-pub fn create_test_app() -> Router {
+#[cfg(test)]
+pub fn create_test_app() -> (AppState, Router) {
     if std::env::var("DATABASE_URL").is_err() {
         std::env::set_var("DATABASE_URL", "postgres://localhost/dimppl_test");
-        std::env::set_var("DIMPPL_TEST", "true");
     }
+    std::env::set_var("DIMPPL_TEST", "true");
+    let state = AppState::new();
 
-    create_app()
+    (state.clone(), create_app(state))
 }

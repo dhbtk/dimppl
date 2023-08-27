@@ -1,24 +1,20 @@
 use axum::extract::State;
 use axum::Json;
-use deadpool_diesel::postgres::Pool;
-use diesel::{Insertable, RunQueryDsl, SelectableHelper};
+use diesel::{Insertable, SelectableHelper};
 use diesel::associations::HasTable;
-use rand::distributions::Alphanumeric;
+use diesel_async::RunQueryDsl;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use crate::database::Pool;
+use crate::error_handling::AppError;
 
-use crate::models::User;
+use crate::models::{User, user};
+use crate::models::user::NewUser;
 use crate::schema::users::dsl::users;
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateUserResponse {
     pub access_key: String,
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = crate::schema::users)]
-struct NewUser {
-    access_key: String,
 }
 
 impl From<User> for CreateUserResponse {
@@ -29,48 +25,11 @@ impl From<User> for CreateUserResponse {
     }
 }
 
-impl NewUser {
-    fn new() -> Self {
-        Self {
-            access_key: generate_access_key()
-        }
-    }
-}
-
-fn random_chars(count: usize) -> String {
-    rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(count)
-        .map(char::from)
-        .collect::<String>()
-        .to_uppercase()
-}
-
-fn generate_access_key() -> String {
-    format!(
-        "{}-{}-{}-{}-{}",
-        random_chars(8),
-        random_chars(4),
-        random_chars(4),
-        random_chars(10),
-        random_chars(2)
-    )
-}
-
-pub async fn create_user(State(pool): State<Pool>) -> Json<CreateUserResponse> {
-    let conn = pool.get().await.unwrap();
-    loop {
-        let result = conn.interact(|conn| {
-            let new_user = NewUser::new();
-            let query = diesel::insert_into(users::table())
-                .values(&new_user)
-                .returning(User::as_returning());
-            query.get_result(conn)
-        }).await.unwrap();
-        if let Ok(user) = result {
-            return Json(user.into());
-        }
-    }
+pub async fn create_user(State(mut pool): State<Pool>) -> Result<Json<CreateUserResponse>, AppError> {
+    let mut conn = pool.get().await?;
+    let new_user = NewUser::default();
+    let user = user::create(&new_user, &mut conn).await?;
+    Ok(Json(user.into()))
 }
 
 #[cfg(test)]
@@ -79,7 +38,6 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
-    // for `call`
     use tower::ServiceExt;
 
     use crate::app::create_test_app;
@@ -90,7 +48,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_create_user_happy_path() {
-        let app = create_test_app();
+        let (_, app) = create_test_app();
 
         let response = app
             .oneshot(Request::builder().method("POST").uri("/user").body(Body::empty()).unwrap())

@@ -1,3 +1,6 @@
+pub mod user;
+pub mod user_device;
+
 use diesel::prelude::*;
 
 #[derive(Queryable, Selectable)]
@@ -15,5 +18,6 @@ pub struct UserDevice {
     pub id: i64,
     pub user_id: i64,
     pub name: String,
-    pub last_session_at: chrono::NaiveDateTime
+    pub last_session_at: chrono::NaiveDateTime,
+    pub access_token: String
 }
