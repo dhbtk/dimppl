@@ -23,7 +23,10 @@ async fn main() {
 
     let app = create_app(AppState::new());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let listen_string = std::env::var("LISTEN").unwrap_or("0.0.0.0:3000".into());
+    let addr: SocketAddr = listen_string
+        .parse()
+        .expect("could not parse LISTEN env variable");
     tracing::info!("listening on {addr}");
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
