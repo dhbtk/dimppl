@@ -1,7 +1,7 @@
-use diesel::SqliteConnection;
+use crate::errors::AppResult;
 use crate::models::Podcast;
 use diesel::prelude::*;
-use crate::errors::AppResult;
+use diesel::SqliteConnection;
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     use crate::schema::podcasts::dsl::*;

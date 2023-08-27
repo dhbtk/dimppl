@@ -1,14 +1,17 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
-<p>{config}</p>
+<p>{content}</p>
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/tauri'
   import { onMount } from 'svelte'
-  let config = 'empty'
+  import type { Config } from '$lib/models'
+  let content = ''
 
   onMount(() => {
-    invoke('get_config').then(result => {
-      config = JSON.stringify(result)
+    invoke<Config>('get_config').then(result => {
+      if (result.accessToken.length === 0 || result.userAccessKey.length === 0) {
+        content = 'go to onboarding you fool!'
+      } else {
+        content = 'go elsewhere'
+      }
     })
   })
 </script>

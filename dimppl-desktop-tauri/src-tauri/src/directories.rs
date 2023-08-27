@@ -1,9 +1,8 @@
-use std::fs;
 use directories::ProjectDirs;
+use std::fs;
 
 pub fn project_dirs() -> ProjectDirs {
-    ProjectDirs::from("com", "dhbtk", "Dimppl")
-        .expect("Could not locate user home folder")
+    ProjectDirs::from("com", "dhbtk", "Dimppl").expect("Could not locate user home folder")
 }
 
 pub fn ensure_data_dir() {

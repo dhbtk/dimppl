@@ -8,8 +8,6 @@ pub struct AppState {
 impl AppState {
     pub fn new() -> AppResult<Self> {
         let config = Config::load_or_save_default()?;
-        Ok(Self {
-            config
-        })
+        Ok(Self { config })
     }
 }

@@ -1,9 +1,8 @@
 use crate::config::{Config, ConfigWrapper};
 use crate::database::db_connect;
 use crate::errors::AppResult;
-use crate::models::Podcast;
 use crate::models::podcast;
-use crate::state::AppState;
+use crate::models::Podcast;
 
 #[tauri::command]
 pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
@@ -12,9 +11,7 @@ pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
 }
 
 #[tauri::command]
-pub fn get_config(
-    config_wrapper: tauri::State<ConfigWrapper>
-) -> Config {
+pub fn get_config(config_wrapper: tauri::State<ConfigWrapper>) -> Config {
     println!("get_config called");
     config_wrapper.0.lock().unwrap().clone()
 }
@@ -22,9 +19,9 @@ pub fn get_config(
 #[tauri::command]
 pub async fn set_config(
     new_config: Config,
-    config_wrapper: tauri::State<'_, ConfigWrapper>
+    config_wrapper: tauri::State<'_, ConfigWrapper>,
 ) -> AppResult<()> {
     new_config.save()?;
-    *config_wrapper.0.lock().unwrap() = new_config.clone();
+    *config_wrapper.0.lock().unwrap() = new_config;
     Ok(())
 }

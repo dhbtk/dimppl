@@ -1,8 +1,8 @@
-use std::error::Error;
-use diesel::{Connection, SqliteConnection};
-use diesel::sqlite::Sqlite;
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use crate::directories::project_dirs;
+use diesel::sqlite::Sqlite;
+use diesel::{Connection, SqliteConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use std::error::Error;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
@@ -10,7 +10,9 @@ pub fn db_connect() -> SqliteConnection {
     SqliteConnection::establish(database_url().as_ref()).unwrap()
 }
 
-pub fn migrate_database(connection: &mut impl MigrationHarness<Sqlite>) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+pub fn migrate_database(
+    connection: &mut impl MigrationHarness<Sqlite>,
+) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     connection.run_pending_migrations(MIGRATIONS)?;
 
     Ok(())

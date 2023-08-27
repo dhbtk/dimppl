@@ -5,14 +5,14 @@ use crate::config::ConfigWrapper;
 use crate::database::{database_url, prepare_database};
 use crate::directories::ensure_data_dir;
 
-mod state;
+mod commands;
+mod config;
 mod database;
 mod directories;
-mod schema;
-mod models;
-mod config;
 mod errors;
-mod commands;
+mod models;
+mod schema;
+mod state;
 
 fn main() {
     ensure_data_dir();
@@ -21,13 +21,11 @@ fn main() {
     println!("db url: {db_url}");
     tauri::Builder::default()
         .manage(ConfigWrapper::default())
-        .invoke_handler(
-            tauri::generate_handler![
-                commands::list_all_podcasts,
-                commands::get_config,
-                commands::set_config
-            ]
-        )
+        .invoke_handler(tauri::generate_handler![
+            commands::list_all_podcasts,
+            commands::get_config,
+            commands::set_config
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

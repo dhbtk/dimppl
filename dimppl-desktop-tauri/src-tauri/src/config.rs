@@ -1,16 +1,17 @@
+use crate::directories::project_dirs;
+use crate::errors::AppResult;
+use gethostname::gethostname;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use gethostname::gethostname;
-use serde::{Deserialize, Serialize};
-use crate::directories::project_dirs;
-use crate::errors::AppResult;
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     pub user_access_key: String,
     pub device_name: String,
-    pub access_token: String
+    pub access_token: String,
 }
 
 impl Config {
@@ -46,7 +47,7 @@ impl Default for Config {
         Self {
             user_access_key: "".into(),
             device_name: gethostname().into_string().unwrap(),
-            access_token: "".into()
+            access_token: "".into(),
         }
     }
 }
@@ -55,6 +56,8 @@ pub struct ConfigWrapper(pub Mutex<Config>);
 
 impl Default for ConfigWrapper {
     fn default() -> Self {
-        Self(Mutex::new(Config::load_or_save_default().expect("error initializing app state")))
+        Self(Mutex::new(
+            Config::load_or_save_default().expect("error initializing app state"),
+        ))
     }
 }
