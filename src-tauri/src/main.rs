@@ -13,6 +13,8 @@ mod errors;
 mod models;
 mod schema;
 mod state;
+mod backend;
+mod environment;
 
 fn main() {
     ensure_data_dir();
@@ -24,7 +26,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::list_all_podcasts,
             commands::get_config,
-            commands::set_config
+            commands::set_config,
+            commands::register_user,
+            commands::set_access_key,
+            commands::register_device
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -73,6 +73,7 @@ dependencies = [
  "diesel_migrations",
  "directories",
  "gethostname",
+ "reqwest",
  "serde",
  "serde_json",
  "souvlaki",

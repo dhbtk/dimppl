@@ -61,3 +61,11 @@ impl Default for ConfigWrapper {
         ))
     }
 }
+
+impl ConfigWrapper {
+    pub fn update(&self, config: Config) -> AppResult<()> {
+        config.save()?;
+        *self.0.lock().unwrap() = config;
+        Ok(())
+    }
+}
