@@ -64,3 +64,10 @@ pub async fn register_device(
     config_wrapper.update(config)?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn import_podcast(url: String) -> AppResult<()> {
+    let mut conn = db_connect();
+    podcast::import_podcast_from_url(url, &mut conn).await?;
+    Ok(())
+}

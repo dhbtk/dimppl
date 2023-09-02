@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use crate::config::ConfigWrapper;
-use crate::database::{database_url, prepare_database};
+use crate::database::{database_path, prepare_database};
 use crate::directories::ensure_data_dir;
 
 mod commands;
@@ -19,7 +19,7 @@ mod environment;
 fn main() {
     ensure_data_dir();
     prepare_database();
-    let db_url = database_url();
+    let db_url = database_path();
     println!("db url: {db_url}");
     tauri::Builder::default()
         .manage(ConfigWrapper::default())
@@ -29,7 +29,8 @@ fn main() {
             commands::set_config,
             commands::register_user,
             commands::set_access_key,
-            commands::register_device
+            commands::register_device,
+            commands::import_podcast
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

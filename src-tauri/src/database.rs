@@ -7,7 +7,7 @@ use std::error::Error;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub fn db_connect() -> SqliteConnection {
-    SqliteConnection::establish(database_url().as_ref()).unwrap()
+    SqliteConnection::establish(database_path().as_ref()).unwrap()
 }
 
 pub fn migrate_database(
@@ -24,7 +24,7 @@ pub fn prepare_database() {
     // TODO reset db in case the migration fails
 }
 
-pub fn database_url() -> String {
+pub fn database_path() -> String {
     let directories = project_dirs();
     let path = directories.data_dir().to_path_buf().join("database.db");
     path.to_str().unwrap().into()
