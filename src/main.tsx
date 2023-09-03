@@ -8,6 +8,9 @@ import { AppRoute } from './routes/app/AppRoute.tsx'
 import { RootRouteComponent } from './routes/RootRouteComponent.tsx'
 import { OnboardingDeviceNameRoute } from './routes/onboarding/OnboardingDeviceNameRoute.tsx'
 
+import './app.css'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
 const rootRoute = new RootRoute({
   component: RootRouteComponent
 })
@@ -42,10 +45,14 @@ declare module '@tanstack/react-router' {
   }
 }
 
+const queryClient = new QueryClient();
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App>
-      <RouterProvider router={router}/>
-    </App>
+    <QueryClientProvider client={queryClient}>
+      <App>
+        <RouterProvider router={router}/>
+      </App>
+    </QueryClientProvider>
   </React.StrictMode>,
 )
