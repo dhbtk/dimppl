@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { configApi } from '../backend/configApi.ts'
 import { Outlet, useNavigate } from '@tanstack/react-router'
+import { appHomeRoute, onboardingUserAccountRoute } from '../routeDefinitions.ts'
 
 export const RootRouteComponent: React.FC = () => {
   const navigate = useNavigate({ from: '/' })
@@ -8,9 +9,9 @@ export const RootRouteComponent: React.FC = () => {
     configApi.load().then(configData => {
       console.log(configData)
       if (configData.accessToken.length !== 0 && configData.userAccessKey.length !== 0) {
-        navigate({ to: '/app' })
+        navigate({ to: appHomeRoute.to })
       } else {
-        navigate({ to: 'onboarding/user_account' })
+        navigate({ to: onboardingUserAccountRoute.to })
       }
     })
   }, [])

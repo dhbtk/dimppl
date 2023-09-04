@@ -82,6 +82,8 @@ dependencies = [
  "souvlaki",
  "tauri",
  "tauri-build 1.4.0",
+ "tauri-plugin-os",
+ "tauri-plugin-window",
  "tokio",
  "toml",
  "url",
@@ -2487,6 +2489,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "os_info"
+version = "3.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "006e42d5b888366f1880eda20371fedde764ed2213dc8496f49622fa0c99cd5e"
+dependencies = [
+ "log",
+ "serde",
+ "winapi",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3524,6 +3537,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sys-locale"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e801cf239ecd6ccd71f03d270d67dd53d13e90aab208bf4b8fe4ad957ea949b0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "system-deps"
 version = "6.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3726,6 +3748,34 @@ dependencies = [
  "syn 1.0.109",
  "tauri-codegen",
  "tauri-utils 2.0.0-alpha.7",
+]
+
+[[package]]
+name = "tauri-plugin-os"
+version = "2.0.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "040fa002fc0291ae210dfa4e67b1d505a22089a314e3d0fa55035b15d1be7be4"
+dependencies = [
+ "gethostname",
+ "log",
+ "os_info",
+ "serde",
+ "serde_json",
+ "serialize-to-javascript",
+ "sys-locale",
+ "tauri",
+ "thiserror",
+]
+
+[[package]]
+name = "tauri-plugin-window"
+version = "2.0.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06f3c1d40ae1a1b2b837e7f9b8db80aa2ee8c4594f63d729d2abd69f0741225a"
+dependencies = [
+ "serde",
+ "tauri",
+ "thiserror",
 ]
 
 [[package]]

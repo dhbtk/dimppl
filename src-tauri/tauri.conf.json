@@ -58,8 +58,11 @@
         "height": 600,
         "resizable": true,
         "title": "Dimppl",
-        "width": 800
+        "width": 800,
+        "decorations": false,
+        "transparent": true
       }
-    ]
+    ],
+    "macOSPrivateApi": true
   }
 }

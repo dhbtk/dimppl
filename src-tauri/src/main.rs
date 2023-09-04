@@ -22,6 +22,8 @@ fn main() {
     let db_url = database_path();
     println!("db url: {db_url}");
     tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_window::init())
         .manage(ConfigWrapper::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_all_podcasts,

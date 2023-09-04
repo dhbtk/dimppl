@@ -3,6 +3,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { podcastApi } from '../../backend/podcastApi.ts'
 import { Modal } from '../../components/Modal.tsx'
+import { ToolbarButton } from './ToolbarButton.tsx'
 
 export const ImportPodcastButton: React.FC = () => {
   const [open, setOpen] = useState(false)
@@ -22,9 +23,9 @@ export const ImportPodcastButton: React.FC = () => {
   })
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)}>
-        <PlusOutlined/>
-      </button>
+      <ToolbarButton type="button" onClick={() => setOpen(true)}>
+        <PlusOutlined width={24} height={24}/>
+      </ToolbarButton>
       <Modal
         isOpen={open}
         onClose={() => setOpen(false)}
