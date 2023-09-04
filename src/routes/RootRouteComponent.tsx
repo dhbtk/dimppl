@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { configApi } from '../backend/configApi.ts'
-import { Outlet, useNavigate } from '@tanstack/react-router'
+import { Outlet, ScrollRestoration, useNavigate } from '@tanstack/react-router'
 import { appHomeRoute, onboardingUserAccountRoute } from '../routeDefinitions.ts'
 
 export const RootRouteComponent: React.FC = () => {
@@ -15,5 +15,10 @@ export const RootRouteComponent: React.FC = () => {
       }
     })
   }, [])
-  return <Outlet/>
+  return (
+    <>
+      <ScrollRestoration />
+      <Outlet/>
+    </>
+  )
 }

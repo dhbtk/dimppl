@@ -27,6 +27,8 @@ const SidebarLink = styled(Link)`
   
   & > span {
     text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 `
 
@@ -70,13 +72,13 @@ export const Sidebar: React.FC = () => {
       </div>
       <div style={{ padding: 8 }}>
         <SidebarLink to={appHomeRoute.to} params={{}} search={{}} className="sidebar-link">
-          <HomeOutlined size={25}/>
+          <HomeOutlined width={25} height={25}/>
           Home
         </SidebarLink>
         {queryItems.map(podcast => (
           <SidebarLink to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }} className="sidebar-link">
             <img src={podcast.imageUrl} width={25} height={25} alt=""/>
-            <span>{podcast.name}</span>
+            <span title={podcast.name}>{podcast.name}</span>
           </SidebarLink>
         ))}
       </div>
