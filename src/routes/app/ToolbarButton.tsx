@@ -11,6 +11,6 @@ export const ToolbarButton = styled.button`
   cursor: default;
   
   &:hover {
-    background-color: #d6d6d6;
+    background-color: rgba(0, 0, 0, .05);
   }
 `;

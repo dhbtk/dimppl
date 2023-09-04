@@ -1,5 +1,4 @@
 import React from 'react'
-import { HomeOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { Podcast, podcastApi } from '../../backend/podcastApi.ts'
 import { ImportPodcastButton } from './ImportPodcastButton.tsx'
@@ -67,16 +66,16 @@ export const Sidebar: React.FC = () => {
         <div style={{ flex: 1 }}/>
         <ImportPodcastButton/>
         <ToolbarButton type="button">
-          <ReloadOutlined/>
+          <span className="material-icons-outlined">refresh</span>
         </ToolbarButton>
       </div>
       <div style={{ padding: 8 }}>
         <SidebarLink to={appHomeRoute.to} params={{}} search={{}} className="sidebar-link">
-          <HomeOutlined width={25} height={25}/>
+          <span className="material-icons-outlined">home</span>
           Home
         </SidebarLink>
         {queryItems.map(podcast => (
-          <SidebarLink to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }} className="sidebar-link">
+          <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }} className="sidebar-link">
             <img src={podcast.imageUrl} width={25} height={25} alt=""/>
             <span title={podcast.name}>{podcast.name}</span>
           </SidebarLink>

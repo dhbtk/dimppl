@@ -12,10 +12,6 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
-    "@fortawesome/fontawesome-svg-core": "^6.4.2",
-    "@fortawesome/free-regular-svg-icons": "^6.4.2",
-    "@fortawesome/free-solid-svg-icons": "^6.4.2",
-    "@fortawesome/react-fontawesome": "^0.2.0",
     "@tanstack/react-query": "^4.33.0",
     "@tanstack/react-router": "^0.0.1-beta.174",
     "@tauri-apps/api": "^2.0.0-alpha.6",
@@ -23,6 +19,7 @@
     "@tauri-apps/plugin-os": "^2.0.0-alpha.0",
     "@tauri-apps/plugin-window": "^2.0.0-alpha.0",
     "antd": "^5.8.5",
+    "material-icons": "^1.13.10",
     "normalize.css": "^8.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

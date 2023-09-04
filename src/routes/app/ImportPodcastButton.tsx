@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { podcastApi } from '../../backend/podcastApi.ts'
 import { Modal } from '../../components/Modal.tsx'
@@ -24,7 +23,7 @@ export const ImportPodcastButton: React.FC = () => {
   return (
     <>
       <ToolbarButton type="button" onClick={() => setOpen(true)}>
-        <PlusOutlined width={24} height={24}/>
+        <span className="material-icons-outlined">add</span>
       </ToolbarButton>
       <Modal
         isOpen={open}

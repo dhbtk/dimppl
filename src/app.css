@@ -24,3 +24,12 @@ body {
     overflow: hidden;
     background: #fff;
 }
+
+.material-icons-outlined {
+    color: #444444;
+    font-variation-settings:
+            'FILL' 0,
+            'wght' 200,
+            'GRAD' 0,
+            'opsz' 24;
+}
