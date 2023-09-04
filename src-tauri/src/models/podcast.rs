@@ -25,11 +25,11 @@ pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
 }
 
 pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -> AppResult<()> {
-    let parsed_podcast = download_rss_feed(url).await?;
+    let parsed_podcast = download_rss_feed(url.clone()).await?;
     let inserted_podcast = {
         use crate::schema::podcasts::dsl::*;
         insert_into(podcasts::table())
-            .values(NewPodcast::from_parsed(&parsed_podcast))
+            .values(NewPodcast::from_parsed(&parsed_podcast, url.clone()))
             .returning(Podcast::as_returning())
             .get_result(conn)?
     };
@@ -61,12 +61,13 @@ struct NewPodcast {
     pub image_url: String,
     pub name: String,
     pub description: String,
+    pub feed_url: String,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
 
 impl NewPodcast {
-    fn from_parsed(parsed: &ParsedPodcast) -> Self {
+    fn from_parsed(parsed: &ParsedPodcast, url: String) -> Self {
         Self {
             guid: parsed.guid.clone(),
             author: parsed.author.clone(),
@@ -75,7 +76,8 @@ impl NewPodcast {
             name: parsed.name.clone(),
             description: parsed.description.clone(),
             created_at: Utc::now().naive_utc(),
-            updated_at: parsed.published_at
+            updated_at: parsed.published_at,
+            feed_url: url
         }
     }
 }
@@ -188,11 +190,18 @@ pub struct ParsedEpisode {
 
 impl ParsedEpisode {
     pub fn from_item(item: Item) -> AppResult<Self> {
+        let description = if let Some(text) = item.description {
+            text
+        } else if let Some(itunes) = item.itunes_ext {
+            itunes.summary.unwrap_or("".into())
+        } else {
+            "".into()
+        };
         let enclosure = item.enclosure.context("episode with no enclosure")?;
         let instance = Self {
             guid: item.guid.context("no guid for episode!")?.value,
             content_url: enclosure.url.clone(),
-            description: item.description.context("episode with no description")?,
+            description,
             image_url: "".into(),
             length: enclosure.length.parse().unwrap_or(0),
             link: item.link.context("episode with no link")?,

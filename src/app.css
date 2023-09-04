@@ -1,3 +1,14 @@
+html {
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
+input, textarea, select, button, img {
+    -webkit-user-drag: none;
+}
+
 body {
     margin: 0;
     padding: 0;
