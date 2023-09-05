@@ -24,6 +24,12 @@ pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     Ok(results)
 }
 
+pub fn find_one(podcast_id: i32, conn: &mut SqliteConnection) -> AppResult<Podcast> {
+    use crate::schema::podcasts::dsl::*;
+    let results = podcasts.filter(id.eq(podcast_id)).first(conn)?;
+    Ok(results)
+}
+
 pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -> AppResult<()> {
     let parsed_podcast = download_rss_feed(url.clone()).await?;
     let inserted_podcast = {

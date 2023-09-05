@@ -7,6 +7,7 @@ import { appHomeRoute, podcastRoute } from '../../routeDefinitions.ts'
 import styled from 'styled-components'
 import { WindowControls } from 'tauri-controls'
 import { ToolbarButton } from './ToolbarButton.tsx'
+import { podcastUtil } from '../../backend/podcastUtil.ts'
 
 const SidebarLink = styled(Link)`
   display: flex;
@@ -45,8 +46,7 @@ export const Sidebar: React.FC = () => {
       bottom: 0,
       background: '#E2E2E2', // #84C5E6
       borderRight: '1px solid #D9D9D9',
-      // borderTopLeftRadius: 9,
-      // borderBottomLeftRadius: 9,
+      flexShrink: 0
     }}>
       <div
         data-tauri-drag-region={true}
@@ -76,7 +76,7 @@ export const Sidebar: React.FC = () => {
         </SidebarLink>
         {queryItems.map(podcast => (
           <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }} className="sidebar-link">
-            <img src={podcast.imageUrl} width={25} height={25} alt=""/>
+            <img src={podcastUtil.imageUrl(podcast)} width={25} height={25} alt=""/>
             <span title={podcast.name}>{podcast.name}</span>
           </SidebarLink>
         ))}

@@ -24,6 +24,35 @@ where
     }
 }
 
+#[derive(Debug)]
+pub struct AppErrorWrapped {
+    pub inner: AppError
+}
+
+impl From<AppError> for AppErrorWrapped {
+    fn from(value: AppError) -> Self {
+        Self {
+            inner: value
+        }
+    }
+}
+
+impl Display for AppErrorWrapped {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.inner, f)
+    }
+}
+
+impl std::error::Error for AppErrorWrapped {
+
+}
+
+impl From<AppError> for Box<dyn std::error::Error> {
+    fn from(value: AppError) -> Self {
+        Box::new(AppErrorWrapped::from(value))
+    }
+}
+
 impl Display for AppError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
