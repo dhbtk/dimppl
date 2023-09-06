@@ -1,10 +1,11 @@
+pub mod episode;
 pub mod podcast;
 
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::Serialize;
 
-#[derive(Queryable, Selectable, Serialize)]
+#[derive(Queryable, Selectable, Serialize, Identifiable, Clone, Debug)]
 #[diesel(table_name = crate::schema::podcasts)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[serde(rename_all = "camelCase")]
@@ -21,9 +22,10 @@ pub struct Podcast {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Queryable, Selectable, Serialize)]
+#[derive(Queryable, Selectable, Serialize, Associations, Identifiable, Clone, Debug)]
 #[diesel(table_name = crate::schema::episodes)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(belongs_to(Podcast))]
 #[serde(rename_all = "camelCase")]
 pub struct Episode {
     pub id: i32,
@@ -40,10 +42,11 @@ pub struct Episode {
     pub title: String,
 }
 
-#[derive(Queryable, Selectable, Serialize)]
+#[derive(Queryable, Selectable, Serialize, Associations, Identifiable, Clone, Debug)]
 #[diesel(table_name = crate::schema::episode_progresses)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[serde(rename_all = "camelCase")]
+#[diesel(belongs_to(Episode))]
 pub struct EpisodeProgress {
     pub id: i32,
     pub episode_id: i32,

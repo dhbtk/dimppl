@@ -1,10 +1,11 @@
 use crate::backend::models::{CreateDeviceRequest, CreateDeviceResponse, CreateUserResponse};
-use crate::errors::AppResult;
 use crate::environment::API_URL;
+use crate::errors::AppResult;
 
 pub async fn create_user() -> AppResult<CreateUserResponse> {
     let client = reqwest::Client::new();
-    let response = client.post(format!("{API_URL}/user"))
+    let response = client
+        .post(format!("{API_URL}/user"))
         .send()
         .await?
         .json::<CreateUserResponse>()

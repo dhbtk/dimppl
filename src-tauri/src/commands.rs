@@ -1,10 +1,11 @@
+use crate::backend::endpoints;
+use crate::backend::models::CreateDeviceRequest;
 use crate::config::{Config, ConfigWrapper};
 use crate::database::db_connect;
 use crate::errors::AppResult;
-use crate::models::podcast;
+use crate::models::episode::EpisodeWithProgress;
 use crate::models::Podcast;
-use crate::backend::endpoints;
-use crate::backend::models::CreateDeviceRequest;
+use crate::models::{episode, podcast};
 
 #[tauri::command]
 pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
@@ -27,9 +28,7 @@ pub async fn set_config(
 }
 
 #[tauri::command]
-pub async fn register_user(
-    config_wrapper: tauri::State<'_, ConfigWrapper>,
-) -> AppResult<()> {
+pub async fn register_user(config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
     let response = endpoints::create_user().await?;
     let mut config: Config = config_wrapper.0.lock().unwrap().clone();
     config.user_access_key = response.access_key;
@@ -57,7 +56,7 @@ pub async fn register_device(
     config.device_name = device_name.clone();
     let request = CreateDeviceRequest {
         user_access_key: config.user_access_key.clone(),
-        device_name
+        device_name,
     };
     let response = endpoints::create_device(&request).await?;
     config.access_token = response.access_token;
@@ -70,4 +69,10 @@ pub async fn import_podcast(url: String) -> AppResult<()> {
     let mut conn = db_connect();
     podcast::import_podcast_from_url(url, &mut conn).await?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn list_podcast_episodes(id: i32) -> AppResult<Vec<EpisodeWithProgress>> {
+    let mut conn = db_connect();
+    episode::list_for_podcast(id, &mut conn)
 }

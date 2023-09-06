@@ -26,14 +26,12 @@ where
 
 #[derive(Debug)]
 pub struct AppErrorWrapped {
-    pub inner: AppError
+    pub inner: AppError,
 }
 
 impl From<AppError> for AppErrorWrapped {
     fn from(value: AppError) -> Self {
-        Self {
-            inner: value
-        }
+        Self { inner: value }
     }
 }
 
@@ -43,9 +41,7 @@ impl Display for AppErrorWrapped {
     }
 }
 
-impl std::error::Error for AppErrorWrapped {
-
-}
+impl std::error::Error for AppErrorWrapped {}
 
 impl From<AppError> for Box<dyn std::error::Error> {
     fn from(value: AppError) -> Self {

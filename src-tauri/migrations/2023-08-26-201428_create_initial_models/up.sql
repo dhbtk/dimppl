@@ -15,7 +15,7 @@ CREATE TABLE podcasts (
 CREATE TABLE episodes (
     id INTEGER PRIMARY KEY NOT NULL,
     guid TEXT NOT NULL,
-    podcast_id INTEGER NOT NULL,
+    podcast_id INTEGER NOT NULL REFERENCES podcasts(id),
     content_local_path TEXT NOT NULL,
     content_url TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE episodes (
 
 CREATE TABLE episode_progresses (
     id INTEGER PRIMARY KEY NOT NULL,
-    episode_id INTEGER NOT NULL,
+    episode_id INTEGER NOT NULL REFERENCES episodes(id),
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     listened_seconds INTEGER NOT NULL,
     updated_at TIMESTAMP NOT NULL

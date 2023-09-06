@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use chrono::{NaiveDateTime, Utc};
-use diesel::{insert_into, SqliteConnection};
 use diesel::associations::HasTable;
 use diesel::prelude::*;
+use diesel::{insert_into, SqliteConnection};
 use futures::StreamExt;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
@@ -49,10 +49,7 @@ pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -
 }
 
 pub async fn download_rss_feed(url: String) -> AppResult<ParsedPodcast> {
-    let content = reqwest::get(url)
-        .await?
-        .bytes()
-        .await?;
+    let content = reqwest::get(url).await?.bytes().await?;
     let channel = Channel::read_from(&content[..])?;
     let podcast = ParsedPodcast::from_channel(channel).await?;
     Ok(podcast)
@@ -83,7 +80,7 @@ impl NewPodcast {
             description: parsed.description.clone(),
             created_at: Utc::now().naive_utc(),
             updated_at: parsed.published_at,
-            feed_url: url
+            feed_url: url,
         }
     }
 }
@@ -101,7 +98,7 @@ struct NewEpisode {
     pub length: i32,
     pub link: String,
     pub episode_date: NaiveDateTime,
-    pub title: String
+    pub title: String,
 }
 
 impl NewEpisode {
@@ -117,9 +114,18 @@ impl NewEpisode {
             length: parsed.length,
             link: parsed.link.clone(),
             episode_date: parsed.episode_date,
-            title: parsed.title.clone()
+            title: parsed.title.clone(),
         }
     }
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::episode_progresses)]
+pub struct NewProgress {
+    pub episode_id: i32,
+    pub completed: bool,
+    pub listened_seconds: i32,
+    pub updated_at: NaiveDateTime,
 }
 
 pub struct ParsedPodcast {
@@ -130,7 +136,7 @@ pub struct ParsedPodcast {
     pub name: String,
     pub description: String,
     pub published_at: NaiveDateTime,
-    pub episodes: Vec<ParsedEpisode>
+    pub episodes: Vec<ParsedEpisode>,
 }
 
 impl ParsedPodcast {
@@ -144,20 +150,21 @@ impl ParsedPodcast {
         let local_image_path = {
             match channel.image.clone() {
                 None => "".into(),
-                Some(image) => {
-                    download_image(&image.url, &identifier).await?
-                }
+                Some(image) => download_image(&image.url, &identifier).await?,
             }
         };
         let instance = Self {
             guid: identifier.clone(),
-            author: channel.itunes_ext.and_then(|atom| atom.author).unwrap_or("".into()),
+            author: channel
+                .itunes_ext
+                .and_then(|atom| atom.author)
+                .unwrap_or("".into()),
             local_image_path,
             image_url: channel.image.map(|i| i.url).unwrap_or("".into()),
             name: channel.title,
             description: channel.description,
             published_at: rfc822_to_naive_date_time(channel.pub_date),
-            episodes
+            episodes,
         };
         Ok(instance)
     }
@@ -212,16 +219,15 @@ impl ParsedEpisode {
             length: enclosure.length.parse().unwrap_or(0),
             link: item.link.context("episode with no link")?,
             title: item.title.context("episode with no title")?,
-            episode_date: rfc822_to_naive_date_time(item.pub_date)
+            episode_date: rfc822_to_naive_date_time(item.pub_date),
         };
         Ok(instance)
     }
 }
 
 fn rfc822_to_naive_date_time(string: Option<String>) -> NaiveDateTime {
-    string.and_then(|pub_date_str| {
-        parse_from_rfc2822_with_fallback(pub_date_str.clone()).ok()
-    }).and_then(|timestamp| {
-        NaiveDateTime::from_timestamp_millis(timestamp.timestamp_millis())
-    }).unwrap_or(NaiveDateTime::default())
+    string
+        .and_then(|pub_date_str| parse_from_rfc2822_with_fallback(pub_date_str).ok())
+        .and_then(|timestamp| NaiveDateTime::from_timestamp_millis(timestamp.timestamp_millis()))
+        .unwrap_or(NaiveDateTime::default())
 }

@@ -42,4 +42,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(episode_progresses -> episodes (episode_id));
+diesel::joinable!(episodes -> podcasts (podcast_id));
+
 diesel::allow_tables_to_appear_in_same_query!(episode_progresses, episodes, podcasts,);

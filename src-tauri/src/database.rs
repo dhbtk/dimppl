@@ -20,7 +20,7 @@ pub fn migrate_database(
 
 pub fn prepare_database() {
     let mut conn = db_connect();
-    migrate_database(&mut conn);
+    let _ = migrate_database(&mut conn);
     // TODO reset db in case the migration fails
 }
 

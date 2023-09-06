@@ -1,6 +1,6 @@
 use directories::ProjectDirs;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub fn project_dirs() -> ProjectDirs {
     ProjectDirs::from("com", "dhbtk", "Dimppl").expect("Could not locate user home folder")
