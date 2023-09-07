@@ -7,7 +7,7 @@ export const AppRoute: React.FC = () => {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar/>
-      <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: '1', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 2px)' }}>
         <PlayerControlsTopBar/>
         <Outlet/>
       </div>

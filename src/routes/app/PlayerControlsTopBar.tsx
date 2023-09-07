@@ -8,6 +8,7 @@ const TopBar = styled.div`
   align-items: center;
   padding: 0 8px;
   border-bottom: 1px solid #ECECEC;
+  flex-shrink: 0;
 `
 
 export const PlayerControlsTopBar: React.FC = () => {

@@ -5,6 +5,18 @@ html {
     cursor: default;
 }
 
+:root {
+    --contexify-menu-bgColor: #e8e8e8;
+    --contexify-separator-color: #d1d1d1;
+    --contexify-item-color: #444444;
+    --contexify-activeItem-color: #fff;
+    --contexify-activeItem-bgColor: #7b99f3;
+    --contexify-rightSlot-color: #b4b4b4;
+    --contexify-activeRightSlot-color: #fff;
+    --contexify-arrow-color: #444444;
+    --contexify-activeArrow-color: #fff;
+}
+
 input, textarea, select, button, img {
     -webkit-user-drag: none;
 }
