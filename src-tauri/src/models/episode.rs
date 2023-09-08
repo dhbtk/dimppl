@@ -66,7 +66,7 @@ pub async fn start_download(
     let episode = find_one(episode_id, conn)?;
     tracing::debug!("progress_indicator.set_progress");
     progress_indicator
-        .set_progress(episode_id, EpisodeDownloadProgress::default())
+        .set_progress(&episode, EpisodeDownloadProgress::default())
         .await;
 
     let response = reqwest::get(&episode.content_url).await?;
@@ -80,7 +80,7 @@ pub async fn start_download(
     tracing::debug!("progress_indicator.set_progress total_length {total_length}");
     progress_indicator
         .set_progress(
-            episode_id,
+            &episode,
             EpisodeDownloadProgress::new(downloaded, total_length),
         )
         .await;
@@ -107,7 +107,7 @@ pub async fn start_download(
         if event_emit_ts.elapsed().as_millis() > 250 {
             progress_indicator
                 .set_progress(
-                    episode_id,
+                    &episode,
                     EpisodeDownloadProgress::new(downloaded, total_length),
                 )
                 .await;

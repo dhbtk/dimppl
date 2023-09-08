@@ -10,6 +10,10 @@ const StyledButton = styled.button`
   height: 36px;
   width: 36px;
   cursor: default;
+  
+  &[disabled] {
+    color: #b4b4b4;
+  }
 
   &:hover {
     background-color: rgba(0, 0, 0, .05);

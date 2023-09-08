@@ -1,17 +1,19 @@
 import React, { createContext, PropsWithChildren, useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
+import { Episode } from '../backend/podcastApi.ts'
 
-export interface EpisodeDownloadProgress {
+export interface EpisodeDownloadProgressReport {
   downloadedBytes: number
   totalBytes: number
+  episode: Episode
 }
 
-export type DownloadProgress = Record<number, EpisodeDownloadProgress>
+export type DownloadProgress = EpisodeDownloadProgressReport[]
 
-export const DownloadContext = createContext<DownloadProgress>({})
+export const DownloadContext = createContext<DownloadProgress>([])
 
 export const DownloadContextProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const [downloadContext, setDownloadContext] = useState<DownloadProgress>({})
+  const [downloadContext, setDownloadContext] = useState<DownloadProgress>([])
 
   useEffect(() => {
     listen<DownloadProgress>('episode-downloads', event => {

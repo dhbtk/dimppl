@@ -38,7 +38,7 @@ body {
 }
 
 .material-icons-outlined {
-    color: #444444;
+    color: inherit;
     font-variation-settings:
             'FILL' 0,
             'wght' 200,
