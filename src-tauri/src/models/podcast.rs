@@ -30,7 +30,10 @@ pub fn find_one(podcast_id: i32, conn: &mut SqliteConnection) -> AppResult<Podca
     Ok(results)
 }
 
-pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -> AppResult<()> {
+pub async fn import_podcast_from_url(
+    url: String,
+    conn: &mut SqliteConnection,
+) -> AppResult<Podcast> {
     let parsed_podcast = download_rss_feed(url.clone()).await?;
     let inserted_podcast = {
         use crate::schema::podcasts::dsl::*;
@@ -45,7 +48,7 @@ pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -
             .values(NewEpisode::from_parsed(episode, inserted_podcast.id))
             .execute(conn)?;
     }
-    Ok(())
+    Ok(inserted_podcast)
 }
 
 pub async fn download_rss_feed(url: String) -> AppResult<ParsedPodcast> {

@@ -3,11 +3,13 @@ use crate::backend::models::CreateDeviceRequest;
 use crate::config::{Config, ConfigWrapper};
 use crate::database::db_connect;
 use crate::errors::AppResult;
+use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::episode::EpisodeWithProgress;
 use crate::models::episode_downloads::EpisodeDownloads;
-use crate::models::Podcast;
 use crate::models::{episode, podcast};
+use crate::models::{Episode, Podcast};
 use std::ops::Deref;
+use tauri::AppHandle;
 
 #[tauri::command]
 pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
@@ -67,9 +69,10 @@ pub async fn register_device(
 }
 
 #[tauri::command]
-pub async fn import_podcast(url: String) -> AppResult<()> {
+pub async fn import_podcast(url: String, app: AppHandle) -> AppResult<()> {
     let mut conn = db_connect();
-    podcast::import_podcast_from_url(url, &mut conn).await?;
+    let podcast = podcast::import_podcast_from_url(url, &mut conn).await?;
+    app.send_invalidate_cache(EntityChange::Podcast(podcast.id))?;
     Ok(())
 }
 
@@ -83,7 +86,16 @@ pub async fn list_podcast_episodes(id: i32) -> AppResult<Vec<EpisodeWithProgress
 pub async fn download_episode(
     id: i32,
     progress_indicator: tauri::State<'_, EpisodeDownloads>,
+    app: AppHandle,
 ) -> AppResult<()> {
     let mut conn = db_connect();
-    episode::start_download(id, progress_indicator.deref(), &mut conn).await
+    episode::start_download(id, progress_indicator.deref(), &mut conn).await?;
+    app.send_invalidate_cache(EntityChange::Episode(id))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_episode(id: i32) -> AppResult<Episode> {
+    let mut conn = db_connect();
+    episode::find_one(id, &mut conn)
 }

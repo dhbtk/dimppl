@@ -1,7 +1,6 @@
 use crate::errors::AppResult;
 use anyhow::{anyhow, Context};
 use reqwest::header::CONTENT_DISPOSITION;
-use tauri::{AppHandle, Manager};
 
 pub trait ResponseExt {
     fn content_disposition_file_name(&self) -> AppResult<String>;
@@ -57,16 +56,5 @@ pub trait StrOptionExt {
 impl StrOptionExt for Option<&str> {
     fn to_maybe_string(&self) -> Option<String> {
         self.map(|i| i.to_string())
-    }
-}
-
-pub trait AppHandleExt {
-    fn send_invalidate_cache(&self, key: impl Into<String>) -> AppResult<()>;
-}
-
-impl AppHandleExt for AppHandle {
-    fn send_invalidate_cache(&self, key: impl Into<String>) -> AppResult<()> {
-        self.emit_all("invalidate-cache", key.into())?;
-        Ok(())
     }
 }

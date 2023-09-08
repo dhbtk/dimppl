@@ -21,6 +21,7 @@ mod directories;
 mod environment;
 mod errors;
 mod extensions;
+mod frontend_change_tracking;
 mod models;
 mod schema;
 
@@ -62,7 +63,8 @@ fn main() {
             commands::register_device,
             commands::import_podcast,
             commands::list_podcast_episodes,
-            commands::download_episode
+            commands::download_episode,
+            commands::get_episode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
