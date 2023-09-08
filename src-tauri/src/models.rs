@@ -1,4 +1,5 @@
 pub mod episode;
+pub mod episode_downloads;
 pub mod podcast;
 
 use chrono::NaiveDateTime;

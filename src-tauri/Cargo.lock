@@ -69,11 +69,14 @@ dependencies = [
  "anyhow",
  "bb8",
  "chrono",
+ "derive_more",
  "diesel",
  "diesel_migrations",
  "directories",
  "futures",
+ "futures-util",
  "gethostname",
+ "mime2ext",
  "reqwest",
  "rfc822_sanitizer",
  "rss",
@@ -2196,6 +2199,12 @@ name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+
+[[package]]
+name = "mime2ext"
+version = "0.1.52"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1a85a5069ebd40e64b1985773cc81addbe9d90d7ecf60e7b5475a57ad584c70"
 
 [[package]]
 name = "miniz_oxide"

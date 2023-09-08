@@ -4,8 +4,10 @@ use crate::config::{Config, ConfigWrapper};
 use crate::database::db_connect;
 use crate::errors::AppResult;
 use crate::models::episode::EpisodeWithProgress;
+use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::Podcast;
 use crate::models::{episode, podcast};
+use std::ops::Deref;
 
 #[tauri::command]
 pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
@@ -75,4 +77,13 @@ pub async fn import_podcast(url: String) -> AppResult<()> {
 pub async fn list_podcast_episodes(id: i32) -> AppResult<Vec<EpisodeWithProgress>> {
     let mut conn = db_connect();
     episode::list_for_podcast(id, &mut conn)
+}
+
+#[tauri::command]
+pub async fn download_episode(
+    id: i32,
+    progress_indicator: tauri::State<'_, EpisodeDownloads>,
+) -> AppResult<()> {
+    let mut conn = db_connect();
+    episode::start_download(id, progress_indicator.deref(), &mut conn).await
 }

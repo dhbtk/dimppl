@@ -1,11 +1,26 @@
 use crate::errors::AppResult;
 use crate::models::podcast::NewProgress;
 use crate::models::{Episode, EpisodeProgress};
+use anyhow::Context;
 use chrono::Utc;
 use diesel::associations::HasTable;
 use diesel::insert_into;
 use diesel::prelude::*;
+use mime2ext::mime2ext;
+use reqwest::header::CONTENT_TYPE;
+use reqwest::Response;
 use serde::Serialize;
+use std::cmp::min;
+use std::fs::File;
+use std::io::Write;
+use std::time::Instant;
+
+use crate::directories::podcast_downloads_dir;
+use crate::extensions::StringExt;
+use crate::extensions::{ResponseExt, StrOptionExt};
+use crate::models::episode_downloads::{EpisodeDownloadProgress, EpisodeDownloads};
+use futures_util::StreamExt;
+use url::Url;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,6 +50,99 @@ pub fn list_for_podcast(
         .map(|(progress, episode)| EpisodeWithProgress::new(episode.clone(), progress.clone()))
         .collect::<Vec<_>>();
     Ok(episodes_with_progress)
+}
+
+pub fn find_one(episode_id: i32, conn: &mut SqliteConnection) -> AppResult<Episode> {
+    use crate::schema::episodes::dsl::*;
+    let results = episodes.filter(id.eq(episode_id)).first(conn)?;
+    Ok(results)
+}
+
+pub async fn start_download(
+    episode_id: i32,
+    progress_indicator: &EpisodeDownloads,
+    conn: &mut SqliteConnection,
+) -> AppResult<()> {
+    let episode = find_one(episode_id, conn)?;
+    progress_indicator
+        .set_progress(episode_id, EpisodeDownloadProgress::default())
+        .await;
+
+    let response = reqwest::get(&episode.content_url).await?;
+    if !response.status().is_success() {
+        progress_indicator.mark_done(episode_id).await;
+        return Ok(()); // this is a lie tho
+    }
+
+    let mut downloaded: u64 = 0;
+    let total_length = response.content_length().unwrap_or(0);
+    progress_indicator
+        .set_progress(
+            episode_id,
+            EpisodeDownloadProgress::new(downloaded, total_length),
+        )
+        .await;
+
+    let extension = extract_episode_filename_extension(&episode, &response);
+    let file_name = format!(
+        "{}-{}.{}",
+        episode.title.truncate_up_to(50),
+        episode.id,
+        extension
+    );
+    let path = podcast_downloads_dir().join(file_name);
+    let mut file = File::create(&path)?;
+    let mut event_emit_ts = Instant::now();
+    let mut stream = response.bytes_stream();
+
+    while let Some(item) = stream.next().await {
+        let chunk = item?;
+        file.write_all(&chunk)?;
+        let new = min(downloaded + (chunk.len() as u64), total_length);
+        downloaded = new;
+        if event_emit_ts.elapsed().as_millis() > 50 {
+            progress_indicator
+                .set_progress(
+                    episode_id,
+                    EpisodeDownloadProgress::new(downloaded, total_length),
+                )
+                .await;
+            event_emit_ts = Instant::now();
+        }
+    }
+    // TODO: figure out how to get episode length in seconds
+    diesel::update(Episode::table())
+        .set(
+            crate::schema::episodes::dsl::content_local_path
+                .eq(path.to_str().context("to_str")?.to_string()),
+        )
+        .execute(conn)?;
+    progress_indicator.mark_done(episode_id).await;
+
+    Ok(())
+}
+
+fn extract_episode_filename_extension(episode: &Episode, response: &Response) -> String {
+    let response_extension = response
+        .content_disposition_file_name()
+        .ok()
+        .and_then(|i| i.split('.').last().to_maybe_string());
+    let url_extension = Url::parse(&episode.content_url)
+        .ok()
+        .and_then(|url| url.path().split('.').last().to_maybe_string());
+    let mime_type_extension = response
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok().to_maybe_string())
+        .and_then(|value| mime2ext(&value).to_maybe_string());
+    let extension_possibilities = vec![response_extension, url_extension, mime_type_extension];
+    let fallback_extension = Some("mp3".to_string());
+    extension_possibilities
+        .iter()
+        .find(|i| i.is_some())
+        .unwrap_or(&fallback_extension)
+        .clone()
+        .unwrap()
 }
 
 fn fix_missing_progress_entries(

@@ -8,8 +8,10 @@ use std::path::PathBuf;
 use crate::config::ConfigWrapper;
 use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
+use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
 use tauri::http::ResponseBuilder;
+use tauri::Manager;
 
 mod backend;
 mod commands;
@@ -18,6 +20,7 @@ mod database;
 mod directories;
 mod environment;
 mod errors;
+mod extensions;
 mod models;
 mod schema;
 
@@ -46,6 +49,10 @@ fn main() {
             }
             return ResponseBuilder::new().status(404).body(Vec::new());
         })
+        .setup(|app| {
+            app.manage(EpisodeDownloads::new(app.handle().clone()));
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::list_all_podcasts,
             commands::get_config,
@@ -54,7 +61,8 @@ fn main() {
             commands::set_access_key,
             commands::register_device,
             commands::import_podcast,
-            commands::list_podcast_episodes
+            commands::list_podcast_episodes,
+            commands::download_episode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

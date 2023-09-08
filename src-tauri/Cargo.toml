@@ -36,6 +36,9 @@ futures = "0.3.28"
 rfc822_sanitizer = "0.3.6"
 tauri-plugin-window = "2.0.0-alpha.1"
 tauri-plugin-os = "2.0.0-alpha.1"
+derive_more = "0.99.17"
+mime2ext = "0.1.52"
+futures-util = "0.3.28"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

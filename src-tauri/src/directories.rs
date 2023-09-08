@@ -21,3 +21,11 @@ pub fn images_dir() -> PathBuf {
     }
     path
 }
+
+pub fn podcast_downloads_dir() -> PathBuf {
+    let path = project_dirs().data_dir().join("episodes");
+    if !path.exists() {
+        fs::create_dir_all(&path).expect("could not create episodes dir");
+    }
+    path
+}
