@@ -12,6 +12,7 @@ use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
 use tauri::http::ResponseBuilder;
 use tauri::Manager;
+use tracing::Level;
 
 mod backend;
 mod commands;
@@ -25,11 +26,19 @@ mod frontend_change_tracking;
 mod models;
 mod schema;
 
-fn main() {
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(Level::DEBUG)
+        .with_target(false)
+        .pretty()
+        .init();
+
+    tauri::async_runtime::set(tokio::runtime::Handle::current());
     ensure_data_dir();
     prepare_database();
     let db_url = database_path();
-    println!("db url: {db_url}");
+    tracing::info!("db url: {db_url}");
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_window::init())

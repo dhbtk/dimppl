@@ -8,6 +8,7 @@ import styled from 'styled-components'
 import { WindowControls } from 'tauri-controls'
 import { ToolbarButton } from './ToolbarButton.tsx'
 import { podcastUtil } from '../../backend/podcastUtil.ts'
+import { DownloadMonitor } from './DownloadMonitor.tsx'
 
 const SidebarLink = styled(Link)`
   display: flex;
@@ -46,7 +47,9 @@ export const Sidebar: React.FC = () => {
       bottom: 0,
       background: '#E2E2E2', // #84C5E6
       borderRight: '1px solid #D9D9D9',
-      flexShrink: 0
+      flexShrink: 0,
+      display: 'flex',
+      flexDirection: 'column'
     }}>
       <div
         data-tauri-drag-region={true}
@@ -60,6 +63,7 @@ export const Sidebar: React.FC = () => {
           paddingLeft: 0,
           marginBottom: 4,
           gap: 4,
+          flexShrink: 0
         }}
       >
         <WindowControls platform="macos" style={{ marginRight: 'auto' }}/>
@@ -69,7 +73,7 @@ export const Sidebar: React.FC = () => {
           <span className="material-icons-outlined">refresh</span>
         </ToolbarButton>
       </div>
-      <div style={{ padding: 8 }}>
+      <div style={{ padding: 8, flex: 1 }}>
         <SidebarLink to={appHomeRoute.to} params={{}} search={{}} className="sidebar-link">
           <span className="material-icons-outlined">home</span>
           Home
@@ -81,6 +85,7 @@ export const Sidebar: React.FC = () => {
           </SidebarLink>
         ))}
       </div>
+      <DownloadMonitor/>
     </div>
   )
 }

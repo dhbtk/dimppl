@@ -64,6 +64,7 @@ pub async fn start_download(
     conn: &mut SqliteConnection,
 ) -> AppResult<()> {
     let episode = find_one(episode_id, conn)?;
+    tracing::debug!("progress_indicator.set_progress");
     progress_indicator
         .set_progress(episode_id, EpisodeDownloadProgress::default())
         .await;
@@ -76,6 +77,7 @@ pub async fn start_download(
 
     let mut downloaded: u64 = 0;
     let total_length = response.content_length().unwrap_or(0);
+    tracing::debug!("progress_indicator.set_progress total_length {total_length}");
     progress_indicator
         .set_progress(
             episode_id,
@@ -94,13 +96,15 @@ pub async fn start_download(
     let mut file = File::create(&path)?;
     let mut event_emit_ts = Instant::now();
     let mut stream = response.bytes_stream();
+    let mut chunk_count = 0;
 
     while let Some(item) = stream.next().await {
+        chunk_count += 1;
         let chunk = item?;
         file.write_all(&chunk)?;
         let new = min(downloaded + (chunk.len() as u64), total_length);
         downloaded = new;
-        if event_emit_ts.elapsed().as_millis() > 50 {
+        if event_emit_ts.elapsed().as_millis() > 250 {
             progress_indicator
                 .set_progress(
                     episode_id,
@@ -110,8 +114,10 @@ pub async fn start_download(
             event_emit_ts = Instant::now();
         }
     }
+    tracing::debug!("total chunks: {chunk_count}");
     // TODO: figure out how to get episode length in seconds
     diesel::update(Episode::table())
+        .filter(crate::schema::episodes::dsl::id.eq(episode_id))
         .set(
             crate::schema::episodes::dsl::content_local_path
                 .eq(path.to_str().context("to_str")?.to_string()),

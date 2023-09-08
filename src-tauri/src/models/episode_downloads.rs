@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 use tokio::sync::RwLock;
 
+#[derive(Clone)]
 pub struct EpisodeDownloads {
     in_progress: Arc<RwLock<HashMap<i32, EpisodeDownloadProgress>>>,
     app_handle: AppHandle,
@@ -38,7 +39,7 @@ impl EpisodeDownloads {
     }
 
     fn broadcast_change(&self, map: &HashMap<i32, EpisodeDownloadProgress>) {
-        let _ = self.app_handle.emit_all("EpisodeDownloads", map);
+        let _ = self.app_handle.emit_all("episode-downloads", map);
     }
 }
 

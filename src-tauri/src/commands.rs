@@ -88,9 +88,25 @@ pub async fn download_episode(
     progress_indicator: tauri::State<'_, EpisodeDownloads>,
     app: AppHandle,
 ) -> AppResult<()> {
+    tokio::spawn(do_download_episode(
+        id,
+        progress_indicator.deref().clone(),
+        app,
+    ));
+    Ok(())
+}
+
+async fn do_download_episode(
+    id: i32,
+    progress_indicator: EpisodeDownloads,
+    app: AppHandle,
+) -> AppResult<()> {
     let mut conn = db_connect();
-    episode::start_download(id, progress_indicator.deref(), &mut conn).await?;
+    tracing::debug!("start_download");
+    episode::start_download(id, &progress_indicator, &mut conn).await?;
+    tracing::debug!("start_download finished, now invalidate_cache");
     app.send_invalidate_cache(EntityChange::Episode(id))?;
+    tracing::debug!("ok");
     Ok(())
 }
 

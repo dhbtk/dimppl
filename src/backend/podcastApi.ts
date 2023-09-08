@@ -50,5 +50,11 @@ export const podcastApi = {
   },
   listEpisodes: async (podcastId: number): Promise<EpisodeWithProgress[]> => {
     return await invoke<EpisodeWithProgress[]>('list_podcast_episodes', { id: podcastId })
+  },
+  getEpisode: async (id: number): Promise<Episode> => {
+    return await invoke<Episode>('get_episode', { id })
+  },
+  downloadEpisode: async (id: number): Promise<void> => {
+    return await invoke<void>('download_episode', { id })
   }
 }
