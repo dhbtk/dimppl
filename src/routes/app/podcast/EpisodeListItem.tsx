@@ -105,7 +105,7 @@ export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast }> =
           <EpisodeControls>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <DateDisplay>{episodeDate(episode.episodeDate)}</DateDisplay>
-              {episode.contentLocalPath.length === 0 ? <DownloadEpisodeButton episode={episode}/> : <IconButton icon="play_circle" title="Play"/>}
+              {episode.contentLocalPath.length === 0 ? <DownloadEpisodeButton episode={episode}/> : <IconButton icon="play_circle" title="Play" onClick={() => podcastApi.playEpisode(episode.id)}/>}
             </div>
             <div title={episode.contentUrl} style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>{episode.contentUrl}</div>
             <div title={episode.contentLocalPath} style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>{episode.contentLocalPath}</div>

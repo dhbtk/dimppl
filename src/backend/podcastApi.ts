@@ -56,5 +56,8 @@ export const podcastApi = {
   },
   downloadEpisode: async (id: number): Promise<void> => {
     return await invoke<void>('download_episode', { id })
+  },
+  playEpisode: async (id: number): Promise<void> => {
+    return await invoke<void>('play_episode', { id })
   }
 }

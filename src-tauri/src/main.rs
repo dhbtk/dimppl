@@ -4,12 +4,14 @@
 use std::fs;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::config::ConfigWrapper;
 use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
+use crate::player::Player;
 use tauri::http::ResponseBuilder;
 use tauri::Manager;
 use tracing::Level;
@@ -24,6 +26,7 @@ mod errors;
 mod extensions;
 mod frontend_change_tracking;
 mod models;
+mod player;
 mod schema;
 
 #[tokio::main]
@@ -61,6 +64,7 @@ async fn main() {
         })
         .setup(|app| {
             app.manage(EpisodeDownloads::new(app.handle().clone()));
+            app.manage(Arc::new(Player::new()));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -73,7 +77,8 @@ async fn main() {
             commands::import_podcast,
             commands::list_podcast_episodes,
             commands::download_episode,
-            commands::get_episode
+            commands::get_episode,
+            commands::play_episode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

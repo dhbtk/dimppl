@@ -8,7 +8,9 @@ use crate::models::episode::EpisodeWithProgress;
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::{episode, podcast};
 use crate::models::{Episode, Podcast};
+use crate::player::Player;
 use std::ops::Deref;
+use std::sync::Arc;
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -114,4 +116,15 @@ async fn do_download_episode(
 pub fn get_episode(id: i32) -> AppResult<Episode> {
     let mut conn = db_connect();
     episode::find_one(id, &mut conn)
+}
+
+#[tauri::command]
+pub fn play_episode(id: i32, player: tauri::State<'_, Arc<Player>>) -> AppResult<()> {
+    let player = player.deref().clone();
+    let mut conn = db_connect();
+    let episode = episode::find_one(id, &mut conn)?;
+    std::thread::spawn(move || {
+        let _ = player.play_episode(episode, 0);
+    });
+    Ok(())
 }
