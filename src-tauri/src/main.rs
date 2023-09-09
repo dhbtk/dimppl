@@ -64,7 +64,7 @@ async fn main() {
         })
         .setup(|app| {
             app.manage(EpisodeDownloads::new(app.handle().clone()));
-            app.manage(Arc::new(Player::new()));
+            app.manage(Arc::new(Player::new(app.handle().clone())));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -78,7 +78,8 @@ async fn main() {
             commands::list_podcast_episodes,
             commands::download_episode,
             commands::get_episode,
-            commands::play_episode
+            commands::play_episode,
+            commands::player_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

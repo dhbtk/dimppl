@@ -128,3 +128,18 @@ pub fn play_episode(id: i32, player: tauri::State<'_, Arc<Player>>) -> AppResult
     });
     Ok(())
 }
+
+#[tauri::command]
+pub fn player_action(action: String, player: tauri::State<'_, Arc<Player>>) -> AppResult<()> {
+    let player = player.deref().clone();
+    std::thread::spawn(move || {
+        match action.as_str() {
+            "play" => player.play(),
+            "pause" => player.pause(),
+            "skip_forwards" => player.skip_forwards(),
+            "skip_backwards" => player.skip_backwards(),
+            _ => {}
+        };
+    });
+    Ok(())
+}

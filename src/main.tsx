@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { router } from './routeDefinitions.ts'
 import { listen } from '@tauri-apps/api/event'
 import { DownloadContextProvider } from './routes/DownloadContextProvider.tsx'
+import { PlayerContextProvider } from './routes/PlayerContextProvider.tsx'
 
 const queryClient = new QueryClient()
 
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <DownloadContextProvider>
-        <RouterProvider router={router}/>
+        <PlayerContextProvider>
+          <RouterProvider router={router}/>
+        </PlayerContextProvider>
       </DownloadContextProvider>
     </QueryClientProvider>
   </React.StrictMode>,
