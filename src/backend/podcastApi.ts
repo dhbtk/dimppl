@@ -59,5 +59,8 @@ export const podcastApi = {
   },
   playEpisode: async (id: number): Promise<void> => {
     return await invoke<void>('play_episode', { id })
+  },
+  playerAction: async (action: 'play' | 'pause' | 'skip_forwards' | 'skip_backwards'): Promise<void> => {
+    return await invoke<void>('player_action', { action })
   }
 }

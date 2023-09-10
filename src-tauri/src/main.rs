@@ -79,7 +79,8 @@ async fn main() {
             commands::download_episode,
             commands::get_episode,
             commands::play_episode,
-            commands::player_action
+            commands::player_action,
+            commands::find_progress_for_episode
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,26 +1,27 @@
-use crate::errors::AppResult;
-use crate::models::podcast::NewProgress;
-use crate::models::{Episode, EpisodeProgress};
-use anyhow::Context;
-use chrono::Utc;
-use diesel::associations::HasTable;
-use diesel::insert_into;
-use diesel::prelude::*;
-use mime2ext::mime2ext;
-use reqwest::header::CONTENT_TYPE;
-use reqwest::Response;
-use serde::Serialize;
 use std::cmp::min;
 use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
 
+use anyhow::Context;
+use chrono::Utc;
+use diesel::associations::HasTable;
+use diesel::insert_into;
+use diesel::prelude::*;
+use futures_util::StreamExt;
+use lofty::AudioFile;
+use mime2ext::mime2ext;
+use reqwest::header::CONTENT_TYPE;
+use reqwest::Response;
+use serde::Serialize;
+use url::Url;
+
 use crate::directories::podcast_downloads_dir;
-use crate::extensions::StringExt;
+use crate::errors::AppResult;
 use crate::extensions::{ResponseExt, StrOptionExt};
 use crate::models::episode_downloads::{EpisodeDownloadProgress, EpisodeDownloads};
-use futures_util::StreamExt;
-use url::Url;
+use crate::models::podcast::NewProgress;
+use crate::models::{Episode, EpisodeProgress};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +59,17 @@ pub fn find_one(episode_id: i32, conn: &mut SqliteConnection) -> AppResult<Episo
     Ok(results)
 }
 
+pub fn find_one_progress(
+    the_episode_id: i32,
+    conn: &mut SqliteConnection,
+) -> AppResult<EpisodeProgress> {
+    use crate::schema::episode_progresses::dsl::*;
+    let results = episode_progresses
+        .filter(episode_id.eq(the_episode_id))
+        .first(conn)?;
+    Ok(results)
+}
+
 pub async fn start_download(
     episode_id: i32,
     progress_indicator: &EpisodeDownloads,
@@ -86,12 +98,7 @@ pub async fn start_download(
         .await;
 
     let extension = extract_episode_filename_extension(&episode, &response);
-    let file_name = format!(
-        "{}-{}.{}",
-        episode.title.truncate_up_to(50),
-        episode.id,
-        extension
-    );
+    let file_name = format!("{}-{}.{}", episode.podcast_id, episode.id, extension);
     let path = podcast_downloads_dir().join(file_name);
     let mut file = File::create(&path)?;
     let mut event_emit_ts = Instant::now();
@@ -104,7 +111,7 @@ pub async fn start_download(
         file.write_all(&chunk)?;
         let new = min(downloaded + (chunk.len() as u64), total_length);
         downloaded = new;
-        if event_emit_ts.elapsed().as_millis() > 250 {
+        if event_emit_ts.elapsed().as_millis() > 100 {
             progress_indicator
                 .set_progress(
                     &episode,
@@ -115,13 +122,20 @@ pub async fn start_download(
         }
     }
     tracing::debug!("total chunks: {chunk_count}");
-    // TODO: figure out how to get episode length in seconds
+    let tagged_file = lofty::read_from_path(path.clone())?;
+    let file_duration = tagged_file.properties().duration().as_secs();
+    tracing::debug!(
+        "file duration: {} previously known duration: {}",
+        file_duration,
+        episode.length
+    );
     diesel::update(Episode::table())
         .filter(crate::schema::episodes::dsl::id.eq(episode_id))
-        .set(
+        .set((
             crate::schema::episodes::dsl::content_local_path
                 .eq(path.to_str().context("to_str")?.to_string()),
-        )
+            crate::schema::episodes::dsl::length.eq(file_duration as i32),
+        ))
         .execute(conn)?;
     progress_indicator.mark_done(episode_id).await;
 

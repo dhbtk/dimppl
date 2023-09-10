@@ -9,6 +9,10 @@ export const ToolbarButton = styled.button`
   height: 28px;
   width: 28px;
   cursor: default;
+
+  &[disabled] {
+    color: #b4b4b4;
+  }
   
   &:hover {
     background-color: rgba(0, 0, 0, .05);

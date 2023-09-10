@@ -6,7 +6,7 @@ use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::episode::EpisodeWithProgress;
 use crate::models::episode_downloads::EpisodeDownloads;
-use crate::models::{episode, podcast};
+use crate::models::{episode, podcast, EpisodeProgress};
 use crate::models::{Episode, Podcast};
 use crate::player::Player;
 use std::ops::Deref;
@@ -123,8 +123,9 @@ pub fn play_episode(id: i32, player: tauri::State<'_, Arc<Player>>) -> AppResult
     let player = player.deref().clone();
     let mut conn = db_connect();
     let episode = episode::find_one(id, &mut conn)?;
+    let progress = episode::find_one_progress(id, &mut conn)?;
     std::thread::spawn(move || {
-        let _ = player.play_episode(episode, 0);
+        let _ = player.play_episode(episode, progress.listened_seconds as u64);
     });
     Ok(())
 }
@@ -142,4 +143,10 @@ pub fn player_action(action: String, player: tauri::State<'_, Arc<Player>>) -> A
         };
     });
     Ok(())
+}
+
+#[tauri::command]
+pub async fn find_progress_for_episode(episode_id: i32) -> AppResult<EpisodeProgress> {
+    let mut conn = db_connect();
+    episode::find_one_progress(episode_id, &mut conn)
 }

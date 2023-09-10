@@ -7,11 +7,13 @@ export interface PlayerStatus {
   episode?: Episode
   podcast?: Podcast
   elapsed: number
+  duration: number
 }
 
 const defaultState: PlayerStatus = {
   isPaused: true,
-  elapsed: 0
+  elapsed: 0,
+  duration: 0
 }
 
 export const PlayerContext = createContext(defaultState)
