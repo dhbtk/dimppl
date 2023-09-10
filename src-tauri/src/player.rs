@@ -1,9 +1,8 @@
 use std::io::BufReader;
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use crate::database::db_connect;
 use anyhow::anyhow;
 use chrono::Utc;
 use diesel::associations::HasTable;
@@ -14,9 +13,13 @@ use send_wrapper::SendWrapper;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
+use crate::database::db_connect;
 use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::{podcast, Episode, EpisodeProgress, Podcast};
+
+pub mod output;
+pub mod resampler;
 
 #[allow(dead_code)]
 pub struct Player {
@@ -27,6 +30,7 @@ pub struct Player {
     playing_episode: Arc<RwLock<Option<(Episode, Podcast)>>>,
     played_millis: Arc<AtomicI64>,
     episode_length: Arc<RwLock<i64>>,
+    loading: Arc<RwLock<bool>>,
 }
 
 impl Player {
@@ -40,6 +44,7 @@ impl Player {
             playing_episode: Arc::new(RwLock::new(None)),
             played_millis: Arc::new(AtomicI64::new(0)),
             episode_length: Arc::new(RwLock::new(0)),
+            loading: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -47,6 +52,8 @@ impl Player {
         if episode.content_local_path.is_empty() {
             return Err(anyhow!("no content_local_path").into());
         }
+        let mut is_loading = self.loading.write().unwrap();
+        *is_loading = true;
         {
             let mut conn = db_connect();
             let podcast = podcast::find_one(episode.podcast_id, &mut conn)?;
@@ -60,11 +67,13 @@ impl Player {
         let reader = BufReader::new(file);
         self.played_millis
             .store((starting_seconds as i64) * 1000 - 100, Ordering::Relaxed);
+        self.broadcast_status_self(*is_loading);
         let cloned_atomic = self.played_millis.clone();
         let cloned_sink = self.sink.clone();
         let cloned_handle = self.app_handle.clone();
         let cloned_episode = self.playing_episode.clone();
         let cloned_duration = self.episode_length.clone();
+        let measurement = Instant::now();
         let source = Decoder::new(reader)?
             .skip_duration(Duration::from_secs(starting_seconds))
             .periodic_access(Duration::from_millis(100), move |_src| {
@@ -77,6 +86,7 @@ impl Player {
                     &cloned_sink,
                     elapsed,
                     *cloned_duration.read().unwrap(),
+                    false,
                 );
                 tracing::trace!(
                     "playback ms: {} paused: {} episode: {:?}",
@@ -85,6 +95,17 @@ impl Player {
                     maybe_episode.as_ref().map(|(it, _)| it.title.clone())
                 );
             });
+        tracing::debug!(
+            "about to stop sink! loading source took {} ms",
+            measurement.elapsed().as_millis()
+        );
+        tracing::debug!(
+            "queue size: {} is paused: {} volume: {} speed: {}",
+            self.sink.len(),
+            self.sink.is_paused(),
+            self.sink.volume(),
+            self.sink.speed()
+        );
         self.sink.stop();
         self.sink.append(source);
         tracing::debug!(
@@ -95,9 +116,11 @@ impl Player {
             self.sink.speed()
         );
         self.sink.play();
+        *is_loading = false;
+        drop(is_loading);
         self.sink.sleep_until_end();
         tracing::info!("finished playback");
-        self.broadcast_status_self();
+        self.broadcast_status_self(false);
         Ok(())
     }
 
@@ -106,7 +129,7 @@ impl Player {
             return;
         }
         self.sink.play();
-        self.broadcast_status_self();
+        self.broadcast_status_self(*self.loading.read().unwrap());
     }
 
     pub fn pause(&self) {
@@ -114,7 +137,7 @@ impl Player {
             return;
         }
         self.sink.pause();
-        self.broadcast_status_self();
+        self.broadcast_status_self(*self.loading.read().unwrap());
     }
 
     pub fn skip_forwards(&self) {
@@ -149,7 +172,7 @@ impl Player {
         self.sink.set_speed(speed);
     }
 
-    fn broadcast_status_self(&self) {
+    fn broadcast_status_self(&self, loading: bool) {
         let episode = self.playing_episode.read().unwrap();
         let elapsed = self.played_millis.load(Ordering::Relaxed);
         let sink_ref = self.sink.clone();
@@ -159,6 +182,7 @@ impl Player {
             sink_ref.as_ref(),
             elapsed,
             *self.episode_length.read().unwrap(),
+            loading,
         );
     }
 
@@ -168,13 +192,14 @@ impl Player {
         sink: &Sink,
         elapsed: i64,
         duration: i64,
+        loading: bool,
     ) {
         if elapsed % 1000 == 0 && episode_container.is_some() {
             use crate::schema::episode_progresses::dsl::*;
             let (episode, _podcast) = episode_container.clone().unwrap();
             let elapsed_seconds = elapsed / 1000;
             let mut conn = db_connect();
-            tracing::debug!(
+            tracing::trace!(
                 "{} seconds elapsed, saving progress for episode id {}",
                 elapsed_seconds,
                 episode.id
@@ -201,6 +226,7 @@ impl Player {
                 podcast: episode_container.map(|(_, podcast)| podcast),
                 elapsed: elapsed / 1000,
                 duration,
+                loading,
             },
         );
     }
@@ -214,4 +240,5 @@ pub struct PlayerStatus {
     pub podcast: Option<Podcast>,
     pub elapsed: i64,
     pub duration: i64,
+    pub loading: bool,
 }

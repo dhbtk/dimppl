@@ -108,7 +108,7 @@ export const PlayerControlsTopBar: React.FC = () => {
           <ImageBox url={playerStatus.episode.imageUrl || podcastUtil.imageUrl(playerStatus.podcast!)}/>
           <RightSide>
             <TextBox>
-              <p title={playerStatus.episode.title}>{playerStatus.episode.title}</p>
+              <p title={playerStatus.episode.title}>{playerStatus.loading ? 'Carregando...' : playerStatus.episode.title}</p>
               <p style={{ color: '#808080' }}>
                 {playerStatus.podcast?.name}
                 {' — '}
