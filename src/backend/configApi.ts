@@ -4,6 +4,8 @@ export interface Config {
   userAccessKey: string
   deviceName: string
   accessToken: string
+  volume: number
+  playbackSpeed: number
 }
 
 export const configApi = {
@@ -21,5 +23,8 @@ export const configApi = {
   registerDevice: async (deviceName: string): Promise<Config> => {
     await invoke<void>('register_device', { deviceName })
     return await configApi.load()
+  },
+  setVolume: async (volume: number): Promise<void> => {
+    await invoke<void>('set_volume', { volume })
   }
 }

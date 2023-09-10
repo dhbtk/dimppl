@@ -4,6 +4,7 @@ import { PlayerContext } from '../PlayerContextProvider.tsx'
 import { ToolbarIconButton } from './ToolbarIconButton.tsx'
 import { podcastApi } from '../../backend/podcastApi.ts'
 import { podcastUtil } from '../../backend/podcastUtil.ts'
+import { VolumeSlider } from './VolumeSlider.tsx'
 
 const TopBar = styled.div`
   height: 48px;
@@ -122,7 +123,7 @@ export const PlayerControlsTopBar: React.FC = () => {
         </DisplayIsland>
       )}
       <ContentAligner>
-
+        <VolumeSlider/>
       </ContentAligner>
     </TopBar>
   )

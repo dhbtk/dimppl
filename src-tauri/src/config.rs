@@ -12,6 +12,8 @@ pub struct Config {
     pub user_access_key: String,
     pub device_name: String,
     pub access_token: String,
+    pub volume: f32,
+    pub playback_speed: f32,
 }
 
 impl Config {
@@ -48,6 +50,8 @@ impl Default for Config {
             user_access_key: "".into(),
             device_name: gethostname().into_string().unwrap(),
             access_token: "".into(),
+            volume: 1.0,
+            playback_speed: 1.0,
         }
     }
 }

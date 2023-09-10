@@ -141,6 +141,14 @@ impl Player {
         let _ = self.play_episode(episode, seconds.unsigned_abs());
     }
 
+    pub fn set_volume(&self, volume: f32) {
+        self.sink.set_volume(volume);
+    }
+
+    pub fn set_playback_speed(&self, speed: f32) {
+        self.sink.set_speed(speed);
+    }
+
     fn broadcast_status_self(&self) {
         let episode = self.playing_episode.read().unwrap();
         let elapsed = self.played_millis.load(Ordering::Relaxed);

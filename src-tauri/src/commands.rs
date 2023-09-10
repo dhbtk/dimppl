@@ -150,3 +150,16 @@ pub async fn find_progress_for_episode(episode_id: i32) -> AppResult<EpisodeProg
     let mut conn = db_connect();
     episode::find_one_progress(episode_id, &mut conn)
 }
+
+#[tauri::command]
+pub async fn set_volume(
+    volume: f32,
+    config_wrapper: tauri::State<'_, ConfigWrapper>,
+    player: tauri::State<'_, Arc<Player>>,
+) -> AppResult<()> {
+    let mut config = config_wrapper.0.lock().unwrap().clone();
+    config.volume = volume;
+    config_wrapper.update(config)?;
+    player.set_volume(volume);
+    Ok(())
+}

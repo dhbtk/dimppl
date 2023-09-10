@@ -64,7 +64,12 @@ async fn main() {
         })
         .setup(|app| {
             app.manage(EpisodeDownloads::new(app.handle().clone()));
-            app.manage(Arc::new(Player::new(app.handle().clone())));
+            let player = Arc::new(Player::new(app.handle().clone()));
+            let config_wrapper = app.state::<ConfigWrapper>();
+            let config = config_wrapper.0.lock().unwrap();
+            player.set_volume(config.volume);
+            player.set_playback_speed(config.playback_speed);
+            app.manage(player);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -80,7 +85,8 @@ async fn main() {
             commands::get_episode,
             commands::play_episode,
             commands::player_action,
-            commands::find_progress_for_episode
+            commands::find_progress_for_episode,
+            commands::set_volume
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
