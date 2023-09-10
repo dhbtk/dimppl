@@ -1,11 +1,13 @@
 import React, { useContext } from 'react'
-import { Episode, Podcast, podcastApi } from '../../../backend/podcastApi.ts'
+import { Episode, EpisodeProgress, Podcast, podcastApi } from '../../../backend/podcastApi.ts'
 import { useQuery } from '@tanstack/react-query'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { IconButton } from '../IconButton.tsx'
 import styled from 'styled-components'
 import { Link } from '@tanstack/react-router'
 import { DownloadContext } from '../../DownloadContextProvider.tsx'
+import { PlayerContext } from '../../PlayerContextProvider.tsx'
+import { episodeDate, formatHumane, ratio } from '../../../timeUtil.ts'
 
 const EpisodeWrapper = styled.div`
   margin: 8px;
@@ -65,14 +67,29 @@ const EpisodeDescription = styled.div`
 const EpisodeControls = styled.div`
   border-left: 1px solid #E6e6e6;
   padding-left: 10px;
-  width: 120px;
+  width: 150px;
   height: 120px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `
 
 const DateDisplay = styled.div`
   font-size: 11px;
   line-height: 1.4;
+`
+
+const ProgressBarContainer = styled.div`
+  height: 3px;
+  flex-shrink: 0;
+  background-color: #E0E0E0;
+`
+
+const ProgressBar = styled.div<{ percent: string }>`
+  height: 3px;
+  width: ${props => props.percent};
+  background-color: #808080;
 `
 
 const DownloadEpisodeButton: React.FC<{ episode: Episode }> = ({ episode }) => {
@@ -86,7 +103,23 @@ const DownloadEpisodeButton: React.FC<{ episode: Episode }> = ({ episode }) => {
   )
 }
 
-export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast }> = ({ episode: initialEpisode, podcast }) => {
+const PlayButton: React.FC<{ episode: Episode }> = ({ episode }) => {
+  const playerStatus = useContext(PlayerContext)
+  if (playerStatus.episode?.id === episode.id) {
+    return (
+      <IconButton
+        icon={playerStatus.isPaused ? 'play_circle' : 'pause'}
+        onClick={() => podcastApi.playerAction(playerStatus.isPaused ? 'play' : 'pause')}
+        />
+    )
+  } else {
+    return (
+      <IconButton icon="play_circle" title="Play" onClick={() => podcastApi.playEpisode(episode.id)}/>
+    )
+  }
+}
+
+export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, progress: EpisodeProgress }> = ({ episode: initialEpisode, podcast, progress }) => {
   const query = useQuery({
     queryKey: [`episode-${initialEpisode.id}`],
     queryFn: () => podcastApi.getEpisode(initialEpisode.id),
@@ -105,11 +138,16 @@ export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast }> =
           <EpisodeControls>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <DateDisplay>{episodeDate(episode.episodeDate)}</DateDisplay>
-              {episode.contentLocalPath.length === 0 ? <DownloadEpisodeButton episode={episode}/> : <IconButton icon="play_circle" title="Play" onClick={() => podcastApi.playEpisode(episode.id)}/>}
+              {episode.contentLocalPath.length === 0 ? (
+                <DownloadEpisodeButton episode={episode}/>
+              ) : (
+                <PlayButton episode={episode}/>
+              )}
             </div>
-            <div title={episode.contentUrl} style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>{episode.contentUrl}</div>
-            <div title={episode.contentLocalPath} style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>{episode.contentLocalPath}</div>
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <ProgressDisplay episode={episode} progress={progress} />
+              <IconButton icon="more_vert"/>
+            </div>
           </EpisodeControls>
         </div>
       </EpisodeInfoBox>
@@ -117,9 +155,35 @@ export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast }> =
   )
 }
 
-const formatter = new Intl.DateTimeFormat()
-
-function episodeDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return formatter.format(date)
+const ProgressDisplay: React.FC<{ episode: Episode, progress: EpisodeProgress }> = ({ episode, progress: initialProgress }) => {
+  const query = useQuery({
+    queryKey: [`episodeProgress-${initialProgress.id}`],
+    queryFn: () => podcastApi.getProgressForEpisode(episode.id),
+    initialData: initialProgress
+  })
+  const progress = query.data
+  if (progress.completed) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
+        <span>Reproduzido</span>
+        <IconButton icon="check"/>
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 4 }}>
+      <DateDisplay>
+        {
+          progress.listenedSeconds === 0 ? (
+            formatHumane(episode.length)
+          ) : (
+            `${formatHumane(episode.length - progress.listenedSeconds)} restantes`
+          )
+        }
+      </DateDisplay>
+      <ProgressBarContainer style={{ visibility: progress.listenedSeconds === 0 ? 'hidden' : 'visible' }}>
+        <ProgressBar percent={ratio(progress.listenedSeconds, episode.length)}/>
+      </ProgressBarContainer>
+    </div>
+  )
 }

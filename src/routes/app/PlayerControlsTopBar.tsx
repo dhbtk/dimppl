@@ -5,6 +5,7 @@ import { ToolbarIconButton } from './ToolbarIconButton.tsx'
 import { podcastApi } from '../../backend/podcastApi.ts'
 import { podcastUtil } from '../../backend/podcastUtil.ts'
 import { VolumeSlider } from './VolumeSlider.tsx'
+import { episodeDate, formatHms, ratio } from '../../timeUtil.ts'
 
 const TopBar = styled.div`
   height: 48px;
@@ -127,30 +128,4 @@ export const PlayerControlsTopBar: React.FC = () => {
       </ContentAligner>
     </TopBar>
   )
-}
-
-function formatHms(input: number): string {
-  const seconds = input % 60
-  const minutes = ((input - seconds) / 60) % 60
-  const hours = (input - seconds - (minutes * 60)) / 3600
-  const minutesAndSeconds = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-  if (hours > 0) {
-    return `${hours}:${minutesAndSeconds}`
-  }
-  return minutesAndSeconds
-
-}
-
-const formatter = new Intl.DateTimeFormat()
-
-function episodeDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return formatter.format(date)
-}
-
-function ratio(a: number, b: number): string {
-  if (b === 0) {
-    return '0'
-  }
-  return `${(a / b) * 100}%`
 }

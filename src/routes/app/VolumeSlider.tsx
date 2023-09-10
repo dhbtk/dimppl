@@ -6,7 +6,6 @@ import { configApi } from '../../backend/configApi.ts'
 const Container = styled.div`
   display: flex;
   align-items: center;
-  width: 120px;
 `
 
 const SmallActionButton = styled.button`
@@ -31,6 +30,7 @@ const VolumeSliderInput = styled.input<{ width: string }>`
   background-image: linear-gradient(rgb(189, 189, 189), rgb(189, 189, 189));
   background-size: ${props => props.width} 100%;
   background-repeat: no-repeat;
+  width: 100%;
   
   &::-webkit-slider-thumb {
     -webkit-appearance: none;

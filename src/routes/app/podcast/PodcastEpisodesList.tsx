@@ -11,8 +11,8 @@ export const PodcastEpisodesList: React.FC<{ podcast: Podcast }> = ({ podcast })
   })
   return (
     <div style={{ flex: '1', overflow: 'auto' }}>
-      {query.data.map(({ episode }) => (
-        <EpisodeListItem episode={episode} podcast={podcast} key={episode.id}/>
+      {query.data.map(({ episode, progress }) => (
+        <EpisodeListItem episode={episode} podcast={podcast} key={episode.id} progress={progress}/>
       ))}
     </div>
   )
