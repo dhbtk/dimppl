@@ -1,234 +1,62 @@
-use std::io::BufReader;
-use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
+use std::sync::Arc;
 
-use anyhow::anyhow;
-use chrono::Utc;
-use diesel::associations::HasTable;
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
-use lofty::AudioFile;
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
-use send_wrapper::SendWrapper;
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
-use crate::database::db_connect;
 use crate::errors::AppResult;
-use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
-use crate::models::{podcast, Episode, EpisodeProgress, Podcast};
+use crate::models::{Episode, Podcast};
+use crate::player::new_player::NewPlayer;
 
+mod new_player;
 pub mod output;
 pub mod resampler;
 
 #[allow(dead_code)]
 pub struct Player {
     app_handle: AppHandle,
-    stream_handle: OutputStreamHandle,
-    stream: SendWrapper<OutputStream>,
-    sink: Arc<Sink>,
-    playing_episode: Arc<RwLock<Option<(Episode, Podcast)>>>,
-    played_millis: Arc<AtomicI64>,
-    episode_length: Arc<RwLock<i64>>,
-    loading: Arc<RwLock<bool>>,
+    new_player: Arc<NewPlayer>,
 }
 
 impl Player {
     pub fn new(app_handle: AppHandle) -> Self {
-        let (stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
+        let new_handle = app_handle.clone();
         Self {
             app_handle,
-            sink: Arc::new(Sink::try_new(&stream_handle).unwrap()),
-            stream_handle,
-            stream: SendWrapper::new(stream),
-            playing_episode: Arc::new(RwLock::new(None)),
-            played_millis: Arc::new(AtomicI64::new(0)),
-            episode_length: Arc::new(RwLock::new(0)),
-            loading: Arc::new(RwLock::new(false)),
+            new_player: Arc::new(NewPlayer::new(new_handle)),
         }
     }
 
     pub fn play_episode(&self, episode: Episode, starting_seconds: u64) -> AppResult<()> {
-        if episode.content_local_path.is_empty() {
-            return Err(anyhow!("no content_local_path").into());
-        }
-        let mut is_loading = self.loading.write().unwrap();
-        *is_loading = true;
-        {
-            let mut conn = db_connect();
-            let podcast = podcast::find_one(episode.podcast_id, &mut conn)?;
-            let mut playing_episode = self.playing_episode.write().unwrap();
-            *playing_episode = Some((episode.clone(), podcast));
-        }
-        let tagged_file = lofty::read_from_path(episode.content_local_path.as_str())?;
-        let file_duration = tagged_file.properties().duration().as_secs();
-        *self.episode_length.write().unwrap() = file_duration as i64;
-        let file = std::fs::File::open(episode.content_local_path)?;
-        let reader = BufReader::new(file);
-        self.played_millis
-            .store((starting_seconds as i64) * 1000 - 100, Ordering::Relaxed);
-        self.broadcast_status_self(*is_loading);
-        let cloned_atomic = self.played_millis.clone();
-        let cloned_sink = self.sink.clone();
-        let cloned_handle = self.app_handle.clone();
-        let cloned_episode = self.playing_episode.clone();
-        let cloned_duration = self.episode_length.clone();
-        let measurement = Instant::now();
-        let source = Decoder::new(reader)?
-            .skip_duration(Duration::from_secs(starting_seconds))
-            .periodic_access(Duration::from_millis(100), move |_src| {
-                cloned_atomic.fetch_add(100, Ordering::Relaxed);
-                let elapsed = cloned_atomic.load(Ordering::Relaxed);
-                let maybe_episode = cloned_episode.read().unwrap();
-                Self::broadcast_status(
-                    &cloned_handle,
-                    maybe_episode.clone(),
-                    &cloned_sink,
-                    elapsed,
-                    *cloned_duration.read().unwrap(),
-                    false,
-                );
-                tracing::trace!(
-                    "playback ms: {} paused: {} episode: {:?}",
-                    cloned_atomic.load(Ordering::Relaxed),
-                    cloned_sink.is_paused(),
-                    maybe_episode.as_ref().map(|(it, _)| it.title.clone())
-                );
-            });
-        tracing::debug!(
-            "about to stop sink! loading source took {} ms",
-            measurement.elapsed().as_millis()
-        );
-        tracing::debug!(
-            "queue size: {} is paused: {} volume: {} speed: {}",
-            self.sink.len(),
-            self.sink.is_paused(),
-            self.sink.volume(),
-            self.sink.speed()
-        );
-        self.sink.stop();
-        self.sink.append(source);
-        tracing::debug!(
-            "queue size: {} is paused: {} volume: {} speed: {}",
-            self.sink.len(),
-            self.sink.is_paused(),
-            self.sink.volume(),
-            self.sink.speed()
-        );
-        self.sink.play();
-        *is_loading = false;
-        drop(is_loading);
-        self.sink.sleep_until_end();
-        tracing::info!("finished playback");
-        self.broadcast_status_self(false);
-        Ok(())
+        self.new_player
+            .play_episode(episode, starting_seconds as i32)
     }
 
     pub fn play(&self) {
-        if self.playing_episode.read().unwrap().is_none() {
-            return;
-        }
-        self.sink.play();
-        self.broadcast_status_self(*self.loading.read().unwrap());
+        self.new_player.play();
     }
 
     pub fn pause(&self) {
-        if self.playing_episode.read().unwrap().is_none() {
-            return;
-        }
-        self.sink.pause();
-        self.broadcast_status_self(*self.loading.read().unwrap());
+        self.new_player.pause();
     }
 
     pub fn skip_forwards(&self) {
-        self.seek_to(self.played_millis.load(Ordering::Relaxed) / 1000 + 30);
+        self.new_player.skip_forwards();
     }
 
     pub fn skip_backwards(&self) {
-        self.seek_to(self.played_millis.load(Ordering::Relaxed) / 1000 - 15);
+        self.new_player.skip_backwards();
     }
 
     pub fn seek_to(&self, seconds: i64) {
-        if self.playing_episode.read().unwrap().is_none() || seconds < 0 {
-            return;
-        }
-        self.sink.stop();
-        let episode = self
-            .playing_episode
-            .read()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .0
-            .clone();
-        let _ = self.play_episode(episode, seconds.unsigned_abs());
+        self.new_player.seek_to(seconds);
     }
 
     pub fn set_volume(&self, volume: f32) {
-        self.sink.set_volume(volume);
+        self.new_player.set_volume(volume);
     }
 
     pub fn set_playback_speed(&self, speed: f32) {
-        self.sink.set_speed(speed);
-    }
-
-    fn broadcast_status_self(&self, loading: bool) {
-        let episode = self.playing_episode.read().unwrap();
-        let elapsed = self.played_millis.load(Ordering::Relaxed);
-        let sink_ref = self.sink.clone();
-        Self::broadcast_status(
-            &self.app_handle,
-            episode.clone(),
-            sink_ref.as_ref(),
-            elapsed,
-            *self.episode_length.read().unwrap(),
-            loading,
-        );
-    }
-
-    fn broadcast_status(
-        app_handle: &AppHandle,
-        episode_container: Option<(Episode, Podcast)>,
-        sink: &Sink,
-        elapsed: i64,
-        duration: i64,
-        loading: bool,
-    ) {
-        if elapsed % 1000 == 0 && episode_container.is_some() {
-            use crate::schema::episode_progresses::dsl::*;
-            let (episode, _podcast) = episode_container.clone().unwrap();
-            let elapsed_seconds = elapsed / 1000;
-            let mut conn = db_connect();
-            tracing::trace!(
-                "{} seconds elapsed, saving progress for episode id {}",
-                elapsed_seconds,
-                episode.id
-            );
-            let _ = diesel::update(EpisodeProgress::table())
-                .filter(episode_id.eq(episode.id))
-                .set((
-                    listened_seconds.eq(elapsed_seconds as i32),
-                    updated_at.eq(Utc::now().naive_utc()),
-                ))
-                .execute(&mut conn);
-            let progress = episode_progresses
-                .select(EpisodeProgress::as_select())
-                .filter(episode_id.eq(episode.id))
-                .first(&mut conn)
-                .unwrap();
-            let _ = app_handle.send_invalidate_cache(EntityChange::EpisodeProgress(progress.id));
-        }
-        let _ = app_handle.emit_all(
-            "player-status",
-            PlayerStatus {
-                is_paused: sink.is_paused(),
-                episode: episode_container.as_ref().map(|(ep, _)| ep.clone()),
-                podcast: episode_container.map(|(_, podcast)| podcast),
-                elapsed: elapsed / 1000,
-                duration,
-                loading,
-            },
-        );
+        self.new_player.set_playback_speed(speed);
     }
 }
 
