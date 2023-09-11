@@ -11,7 +11,7 @@ use crate::models::{Episode, Podcast};
 use crate::player::Player;
 use std::ops::Deref;
 use std::sync::Arc;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 #[tauri::command]
 pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
@@ -34,6 +34,7 @@ pub async fn sync_podcasts(app: AppHandle) -> AppResult<()> {
             app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
                 .unwrap();
         }
+        let _ = app.emit_all("sync-podcasts-done", ());
     });
 
     Ok(())
