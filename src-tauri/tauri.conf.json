@@ -49,17 +49,25 @@
         "timestampUrl": ""
       }
     },
+    "macOSPrivateApi": true,
     "windows": [
       {
+        "center": true,
+        "decorations": false,
         "fullscreen": false,
         "height": 600,
+        "label": "main",
         "resizable": true,
         "title": "Dimppl",
+        "transparent": true,
         "width": 1024,
-        "decorations": false,
-        "transparent": true
+        "windowEffects": {
+          "effects": [
+            "appearanceBased"
+          ],
+          "radius": 9
+        }
       }
-    ],
-    "macOSPrivateApi": true
+    ]
   }
 }

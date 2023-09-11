@@ -27,14 +27,10 @@ body {
     font-size: 13px;
     font-family: -apple-system;
     color: #444444;
-    background: transparent;
 }
 
 #root {
-    border: 1px solid #D6D6D6;
-    border-radius: 9px;
     overflow: hidden;
-    background: #fff;
 }
 
 .material-icons-outlined {

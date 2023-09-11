@@ -41,12 +41,13 @@ export const Sidebar: React.FC = () => {
   return (
     <div style={{
       overflow: 'auto',
-      height: 'calc(100vh - 2px)',
+      height: '100vh',
       width: '230px',
       left: 0,
       top: 0,
       bottom: 0,
-      background: '#E2E2E2', // #84C5E6
+      background: 'transparent',
+      // background: '#E2E2E2', // #84C5E6
       borderRight: '1px solid #D9D9D9',
       flexShrink: 0,
       display: 'flex',

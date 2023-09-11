@@ -184,3 +184,9 @@ pub async fn set_volume(
     player.set_volume(volume);
     Ok(())
 }
+
+#[tauri::command]
+pub async fn seek(to: i64, player: tauri::State<'_, Arc<Player>>) -> AppResult<()> {
+    player.seek_to(to);
+    Ok(())
+}

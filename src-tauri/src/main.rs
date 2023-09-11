@@ -1,11 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-#![allow(dead_code)]
 
 use std::fs;
 
 use std::path::PathBuf;
 use std::sync::Arc;
+use tauri::http::Response;
 
 use crate::config::ConfigWrapper;
 use crate::database::{database_path, db_connect, prepare_database};
@@ -13,7 +13,6 @@ use crate::directories::ensure_data_dir;
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
 use crate::player::Player;
-use tauri::http::ResponseBuilder;
 use tauri::Manager;
 use tracing::Level;
 
@@ -31,6 +30,7 @@ mod player;
 mod schema;
 
 #[tokio::main]
+#[allow(deprecated)]
 async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)
@@ -49,19 +49,23 @@ async fn main() {
         .manage(ConfigWrapper::default())
         .register_uri_scheme_protocol("localimages", move |_app, request| {
             let mut conn = db_connect();
-            if request.uri().starts_with("localimages://podcast/") {
-                let podcast_id: i32 = request
-                    .uri()
+            let uri_str = request.uri().to_string();
+            if uri_str.starts_with("localimages://podcast/") {
+                let podcast_id: i32 = uri_str
                     .strip_prefix("localimages://podcast/")
                     .unwrap()
-                    .parse()?;
-                let podcast = podcast::find_one(podcast_id, &mut conn)?;
+                    .parse()
+                    .unwrap();
+                let podcast = podcast::find_one(podcast_id, &mut conn).unwrap();
                 let path = PathBuf::from(podcast.local_image_path);
                 if path.exists() {
-                    return ResponseBuilder::new().status(200).body(fs::read(path)?);
+                    return Response::builder()
+                        .status(200)
+                        .body(fs::read(path).unwrap())
+                        .unwrap();
                 }
             }
-            return ResponseBuilder::new().status(404).body(Vec::new());
+            Response::builder().status(404).body(Vec::new()).unwrap()
         })
         .setup(|app| {
             app.manage(EpisodeDownloads::new(app.handle().clone()));
@@ -88,7 +92,8 @@ async fn main() {
             commands::play_episode,
             commands::player_action,
             commands::find_progress_for_episode,
-            commands::set_volume
+            commands::set_volume,
+            commands::seek
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
