@@ -9,6 +9,7 @@ import { WindowControls } from 'tauri-controls'
 import { ToolbarButton } from './ToolbarButton.tsx'
 import { podcastUtil } from '../../backend/podcastUtil.ts'
 import { DownloadMonitor } from './DownloadMonitor.tsx'
+import { SyncPodcastsButton } from './SyncPodcastsButton.tsx'
 
 const SidebarLink = styled(Link)`
   display: flex;
@@ -69,9 +70,7 @@ export const Sidebar: React.FC = () => {
         <WindowControls platform="macos" style={{ marginRight: 'auto' }}/>
         <div style={{ flex: 1 }}/>
         <ImportPodcastButton/>
-        <ToolbarButton type="button">
-          <span className="material-icons-outlined">refresh</span>
-        </ToolbarButton>
+        <SyncPodcastsButton/>
       </div>
       <div style={{ padding: 8, flex: 1 }}>
         <SidebarLink to={appHomeRoute.to} params={{}} search={{}} className="sidebar-link">

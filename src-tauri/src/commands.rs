@@ -20,6 +20,26 @@ pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
 }
 
 #[tauri::command]
+pub async fn sync_podcasts(app: AppHandle) -> AppResult<()> {
+    tokio::spawn(async move {
+        let mut connection = db_connect();
+        podcast::sync_podcasts(&mut connection).await.unwrap();
+        let podcasts = podcast::list_all(&mut connection).unwrap();
+
+        app.send_invalidate_cache(EntityChange::AllPodcasts)
+            .unwrap();
+        for podcast in &podcasts {
+            app.send_invalidate_cache(EntityChange::Podcast(podcast.id))
+                .unwrap();
+            app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
+                .unwrap();
+        }
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_config(config_wrapper: tauri::State<ConfigWrapper>) -> Config {
     config_wrapper.0.lock().unwrap().clone()
 }

@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::directories::images_dir;
 use crate::errors::AppResult;
-use crate::models::Podcast;
+use crate::models::{Episode, Podcast};
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     use crate::schema::podcasts::dsl::*;
@@ -34,7 +34,7 @@ pub async fn import_podcast_from_url(
     url: String,
     conn: &mut SqliteConnection,
 ) -> AppResult<Podcast> {
-    let parsed_podcast = download_rss_feed(url.clone()).await?;
+    let parsed_podcast = download_rss_feed(url.clone(), None).await?;
     let inserted_podcast = {
         use crate::schema::podcasts::dsl::*;
         insert_into(podcasts::table())
@@ -51,11 +51,84 @@ pub async fn import_podcast_from_url(
     Ok(inserted_podcast)
 }
 
-pub async fn download_rss_feed(url: String) -> AppResult<ParsedPodcast> {
+pub async fn sync_podcasts(conn: &mut SqliteConnection) -> AppResult<()> {
+    let podcasts = list_all(conn)?;
+    for podcast in &podcasts {
+        tracing::debug!("Updating podcast: {}", podcast.name.as_str());
+        let parsed_podcast =
+            download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
+        let updated_podcast = UpdatedPodcast::new(
+            podcast.id,
+            NewPodcast::from_parsed(&parsed_podcast, podcast.feed_url.clone()),
+        );
+        diesel::update(Podcast::table().filter(crate::schema::podcasts::dsl::id.eq(podcast.id)))
+            .set(updated_podcast)
+            .execute(conn)?;
+        for episode in &parsed_podcast.episodes {
+            let result = {
+                use crate::schema::episodes::dsl::*;
+                Episode::belonging_to(podcast)
+                    .filter(guid.eq(episode.guid.clone()))
+                    .first::<Episode>(conn)
+            };
+            if result.is_err() {
+                use crate::schema::episodes::dsl::*;
+                insert_into(episodes::table())
+                    .values(NewEpisode::from_parsed(episode, podcast.id))
+                    .execute(conn)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn download_rss_feed(
+    url: String,
+    identifier: Option<String>,
+) -> AppResult<ParsedPodcast> {
     let content = reqwest::get(url).await?.bytes().await?;
     let channel = Channel::read_from(&content[..])?;
-    let podcast = ParsedPodcast::from_channel(channel).await?;
+    let podcast = ParsedPodcast::from_channel(channel, identifier).await?;
     Ok(podcast)
+}
+
+#[derive(Identifiable, AsChangeset)]
+#[diesel(table_name = crate::schema::podcasts)]
+struct UpdatedPodcast {
+    pub id: i32,
+    pub author: String,
+    pub local_image_path: String,
+    pub image_url: String,
+    pub name: String,
+    pub description: String,
+    pub feed_url: String,
+    pub updated_at: NaiveDateTime,
+}
+
+impl UpdatedPodcast {
+    pub fn new(id: i32, new_podcast: NewPodcast) -> Self {
+        let NewPodcast {
+            author,
+            local_image_path,
+            image_url,
+            name,
+            description,
+            feed_url,
+            updated_at,
+            ..
+        } = new_podcast;
+        Self {
+            id,
+            author,
+            local_image_path,
+            image_url,
+            name,
+            description,
+            feed_url,
+            updated_at,
+        }
+    }
 }
 
 #[derive(Insertable)]
@@ -143,13 +216,16 @@ pub struct ParsedPodcast {
 }
 
 impl ParsedPodcast {
-    pub async fn from_channel(channel: Channel) -> AppResult<Self> {
+    pub async fn from_channel(
+        channel: Channel,
+        maybe_identifier: Option<String>,
+    ) -> AppResult<Self> {
         let mut episodes: Vec<ParsedEpisode> = Vec::new();
         for item in &channel.items {
             let episode = ParsedEpisode::from_item(item.clone())?;
             episodes.push(episode);
         }
-        let identifier = Uuid::new_v4().to_string();
+        let identifier = maybe_identifier.unwrap_or(Uuid::new_v4().to_string());
         let local_image_path = {
             match channel.image.clone() {
                 None => "".into(),
@@ -219,7 +295,7 @@ impl ParsedEpisode {
             content_url: enclosure.url.clone(),
             description,
             image_url: "".into(),
-            length: enclosure.length.parse().unwrap_or(0),
+            length: enclosure.length.parse().unwrap_or(0), // TODO: parse from itunes extension
             link: item.link.context("episode with no link")?,
             title: item.title.context("episode with no title")?,
             episode_date: rfc822_to_naive_date_time(item.pub_date),

@@ -45,6 +45,9 @@ export const podcastApi = {
   listAll: async (): Promise<Podcast[]> => {
     return await invoke<Podcast[]>('list_all_podcasts')
   },
+  syncPodcasts: async (): Promise<void> => {
+    return await invoke<void>('sync_podcasts')
+  },
   importPodcast: async (url: string): Promise<void> => {
     await invoke<void>('import_podcast', { url })
   },

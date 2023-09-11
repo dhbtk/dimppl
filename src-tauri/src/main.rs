@@ -75,6 +75,7 @@ async fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_all_podcasts,
+            commands::sync_podcasts,
             commands::get_config,
             commands::set_config,
             commands::register_user,
