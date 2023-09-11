@@ -98,7 +98,7 @@ export const PlayerControlsTopBar: React.FC = () => {
   const playerStatus = useContext(PlayerContext)
   return (
     <TopBar data-tauri-drag-region={true}>
-      <ContentAligner>
+      <ContentAligner data-tauri-drag-region={true}>
         <ToolbarIconButton icon="fast_rewind" disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction('skip_backwards')}/>
         <ToolbarIconButton icon={playerStatus.isPaused ? 'play_arrow' : 'pause'} disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction(playerStatus.isPaused ? 'play' : 'pause')}/>
         <ToolbarIconButton icon="fast_forward" disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction('skip_forwards')}/>
@@ -123,7 +123,7 @@ export const PlayerControlsTopBar: React.FC = () => {
           </RightSide>
         </DisplayIsland>
       )}
-      <ContentAligner>
+      <ContentAligner data-tauri-drag-region={true}>
         <VolumeSlider/>
       </ContentAligner>
     </TopBar>

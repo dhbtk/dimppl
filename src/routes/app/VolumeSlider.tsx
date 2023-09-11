@@ -60,7 +60,7 @@ export const VolumeSlider: React.FC = () => {
   }, [])
   return (
     <Container>
-      <SmallActionButton><Icon icon="volume_mute"/></SmallActionButton>
+      <SmallActionButton onClick={() => submitVolume(0)}><Icon icon="volume_mute"/></SmallActionButton>
       <VolumeSliderInput
         type="range"
         min={0}
@@ -70,7 +70,7 @@ export const VolumeSlider: React.FC = () => {
         value={volume}
         onChange={(e) => submitVolume(e.target.valueAsNumber)}
       />
-      <SmallActionButton><Icon icon="volume_up"/></SmallActionButton>
+      <SmallActionButton onClick={() => submitVolume(1)}><Icon icon="volume_up"/></SmallActionButton>
     </Container>
   )
 }
