@@ -49,9 +49,6 @@
         "timestampUrl": ""
       }
     },
-    "security": {
-      "csp": "default-src 'self'"
-    },
     "windows": [
       {
         "fullscreen": false,

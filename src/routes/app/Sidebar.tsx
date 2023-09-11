@@ -6,7 +6,6 @@ import { Link } from '@tanstack/react-router'
 import { appHomeRoute, podcastRoute } from '../../routeDefinitions.ts'
 import styled from 'styled-components'
 import { WindowControls } from 'tauri-controls'
-import { ToolbarButton } from './ToolbarButton.tsx'
 import { podcastUtil } from '../../backend/podcastUtil.ts'
 import { DownloadMonitor } from './DownloadMonitor.tsx'
 import { SyncPodcastsButton } from './SyncPodcastsButton.tsx'
@@ -38,6 +37,7 @@ export const Sidebar: React.FC = () => {
   const query = useQuery({ queryKey: ['allPodcasts'], queryFn: podcastApi.listAll })
   const queryItems: Podcast[] = query.data ?? []
 
+  // @ts-ignore
   return (
     <div style={{
       overflow: 'auto',
@@ -78,6 +78,7 @@ export const Sidebar: React.FC = () => {
           Home
         </SidebarLink>
         {queryItems.map(podcast => (
+          // @ts-ignore
           <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }} className="sidebar-link">
             <img src={podcastUtil.imageUrl(podcast)} width={25} height={25} alt=""/>
             <span title={podcast.name}>{podcast.name}</span>
