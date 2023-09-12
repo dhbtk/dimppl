@@ -30,13 +30,7 @@ where
             }
 
             // Resample.
-            rubato::Resampler::process_into_buffer(
-                &mut self.resampler,
-                &input,
-                &mut self.output,
-                None,
-            )
-            .unwrap();
+            rubato::Resampler::process_into_buffer(&mut self.resampler, &input, &mut self.output, None).unwrap();
         }
 
         // Remove consumed samples from the input buffer.
@@ -47,8 +41,7 @@ where
         // Interleave the planar samples from Rubato.
         let num_channels = self.output.len();
 
-        self.interleaved
-            .resize(num_channels * self.output[0].len(), T::MID);
+        self.interleaved.resize(num_channels * self.output[0].len(), T::MID);
 
         for (i, frame) in self.interleaved.chunks_exact_mut(num_channels).enumerate() {
             for (ch, s) in frame.iter_mut().enumerate() {
@@ -68,14 +61,8 @@ where
         let duration = duration as usize;
         let num_channels = spec.channels.count();
 
-        let resampler = rubato::FftFixedIn::<f32>::new(
-            spec.rate as usize,
-            to_sample_rate,
-            duration,
-            2,
-            num_channels,
-        )
-        .unwrap();
+        let resampler =
+            rubato::FftFixedIn::<f32>::new(spec.rate as usize, to_sample_rate, duration, 2, num_channels).unwrap();
 
         let output = rubato::Resampler::output_buffer_allocate(&resampler, true);
 

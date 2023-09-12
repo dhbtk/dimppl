@@ -180,13 +180,7 @@ mod cpal {
     pub struct CpalAudioOutput;
 
     trait AudioOutputSample:
-        cpal::SizedSample
-        + cpal::Sample
-        + ConvertibleSample
-        + IntoSample<f32>
-        + RawSample
-        + std::marker::Send
-        + 'static
+        cpal::SizedSample + cpal::Sample + ConvertibleSample + IntoSample<f32> + RawSample + std::marker::Send + 'static
     {
     }
 
@@ -218,15 +212,9 @@ mod cpal {
 
             // Select proper playback routine based on sample format.
             match config.sample_format() {
-                cpal::SampleFormat::F32 => {
-                    CpalAudioOutputImpl::<f32>::try_open(spec, duration, &device)
-                }
-                cpal::SampleFormat::I16 => {
-                    CpalAudioOutputImpl::<i16>::try_open(spec, duration, &device)
-                }
-                cpal::SampleFormat::U16 => {
-                    CpalAudioOutputImpl::<u16>::try_open(spec, duration, &device)
-                }
+                cpal::SampleFormat::F32 => CpalAudioOutputImpl::<f32>::try_open(spec, duration, &device),
+                cpal::SampleFormat::I16 => CpalAudioOutputImpl::<i16>::try_open(spec, duration, &device),
+                cpal::SampleFormat::U16 => CpalAudioOutputImpl::<u16>::try_open(spec, duration, &device),
                 _ => Err(AudioOutputError::OpenStreamError),
             }
         }
@@ -243,11 +231,7 @@ mod cpal {
     }
 
     impl<T: AudioOutputSample> CpalAudioOutputImpl<T> {
-        pub fn try_open(
-            spec: SignalSpec,
-            duration: Duration,
-            device: &cpal::Device,
-        ) -> Result<Box<dyn AudioOutput>> {
+        pub fn try_open(spec: SignalSpec, duration: Duration, device: &cpal::Device) -> Result<Box<dyn AudioOutput>> {
             let num_channels = spec.channels.count();
 
             // Output audio stream config.
@@ -304,11 +288,7 @@ mod cpal {
 
             let resampler = if spec.rate != config.sample_rate.0 {
                 tracing::info!("resampling {} Hz to {} Hz", spec.rate, config.sample_rate.0);
-                Some(Resampler::new(
-                    spec,
-                    config.sample_rate.0 as usize,
-                    duration,
-                ))
+                Some(Resampler::new(spec, config.sample_rate.0 as usize, duration))
             } else {
                 None
             };

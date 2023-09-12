@@ -12,12 +12,7 @@ impl ResponseExt for reqwest::Response {
             .headers()
             .get(CONTENT_DISPOSITION)
             .context("no content-disposition header")
-            .and_then(|value| {
-                value
-                    .to_str()
-                    .map(|i| i.to_string())
-                    .context("no valid ascii")
-            })?;
+            .and_then(|value| value.to_str().map(|i| i.to_string()).context("no valid ascii"))?;
         let disposition = header_string_value.split(';').skip(1);
         for section in disposition {
             let mut parts = section.splitn(2, '=');
@@ -38,11 +33,7 @@ pub trait StringExt {
 
 impl StringExt for String {
     fn truncate_up_to(&self, n: usize) -> Self {
-        let up_to = self
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(n)
-            .unwrap_or(self.len());
+        let up_to = self.char_indices().map(|(i, _)| i).nth(n).unwrap_or(self.len());
         let mut new_string = self.clone();
         new_string.truncate(up_to);
         new_string

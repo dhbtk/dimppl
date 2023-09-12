@@ -103,7 +103,7 @@ export const PlayerControlsTopBar: React.FC = () => {
         <ToolbarIconButton icon={playerStatus.isPaused ? 'play_arrow' : 'pause'} disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction(playerStatus.isPaused ? 'play' : 'pause')}/>
         <ToolbarIconButton icon="fast_forward" disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction('skip_forwards')}/>
       </ContentAligner>
-      {playerStatus.episode === undefined ? <DisplayIsland/> : (
+      {(playerStatus.episode === null || playerStatus.episode === undefined) ? <DisplayIsland/> : (
         <DisplayIsland>
           <ImageBox url={playerStatus.episode.imageUrl || podcastUtil.imageUrl(playerStatus.podcast!)}/>
           <RightSide>

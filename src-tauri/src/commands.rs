@@ -26,11 +26,9 @@ pub async fn sync_podcasts(app: AppHandle) -> AppResult<()> {
         podcast::sync_podcasts(&mut connection).await.unwrap();
         let podcasts = podcast::list_all(&mut connection).unwrap();
 
-        app.send_invalidate_cache(EntityChange::AllPodcasts)
-            .unwrap();
+        app.send_invalidate_cache(EntityChange::AllPodcasts).unwrap();
         for podcast in &podcasts {
-            app.send_invalidate_cache(EntityChange::Podcast(podcast.id))
-                .unwrap();
+            app.send_invalidate_cache(EntityChange::Podcast(podcast.id)).unwrap();
             app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
                 .unwrap();
         }
@@ -46,10 +44,7 @@ pub fn get_config(config_wrapper: tauri::State<ConfigWrapper>) -> Config {
 }
 
 #[tauri::command]
-pub async fn set_config(
-    new_config: Config,
-    config_wrapper: tauri::State<'_, ConfigWrapper>,
-) -> AppResult<()> {
+pub async fn set_config(new_config: Config, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
     config_wrapper.update(new_config)?;
     Ok(())
 }
@@ -64,10 +59,7 @@ pub async fn register_user(config_wrapper: tauri::State<'_, ConfigWrapper>) -> A
 }
 
 #[tauri::command]
-pub async fn set_access_key(
-    value: String,
-    config_wrapper: tauri::State<'_, ConfigWrapper>,
-) -> AppResult<()> {
+pub async fn set_access_key(value: String, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
     let mut config: Config = config_wrapper.0.lock().unwrap().clone();
     config.user_access_key = value;
     config_wrapper.update(config)?;
@@ -75,10 +67,7 @@ pub async fn set_access_key(
 }
 
 #[tauri::command]
-pub async fn register_device(
-    device_name: String,
-    config_wrapper: tauri::State<'_, ConfigWrapper>,
-) -> AppResult<()> {
+pub async fn register_device(device_name: String, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
     let mut config: Config = config_wrapper.0.lock().unwrap().clone();
     config.device_name = device_name.clone();
     let request = CreateDeviceRequest {
@@ -111,19 +100,11 @@ pub async fn download_episode(
     progress_indicator: tauri::State<'_, EpisodeDownloads>,
     app: AppHandle,
 ) -> AppResult<()> {
-    tokio::spawn(do_download_episode(
-        id,
-        progress_indicator.deref().clone(),
-        app,
-    ));
+    tokio::spawn(do_download_episode(id, progress_indicator.deref().clone(), app));
     Ok(())
 }
 
-async fn do_download_episode(
-    id: i32,
-    progress_indicator: EpisodeDownloads,
-    app: AppHandle,
-) -> AppResult<()> {
+async fn do_download_episode(id: i32, progress_indicator: EpisodeDownloads, app: AppHandle) -> AppResult<()> {
     let mut conn = db_connect();
     tracing::debug!("start_download");
     episode::start_download(id, &progress_indicator, &mut conn).await?;
@@ -188,5 +169,19 @@ pub async fn set_volume(
 #[tauri::command]
 pub async fn seek(to: i64, player: tauri::State<'_, Arc<Player>>) -> AppResult<()> {
     player.seek_to(to);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_up_media_controls(app: AppHandle, player: tauri::State<'_, Arc<Player>>) -> AppResult<()> {
+    #[allow(unused)]
+    if let Some(window) = app.get_window("main") {
+        #[cfg(target_os = "windows")]
+        let handle = Some(window.hwnd().unwrap() as *mut _);
+        #[cfg(not(target_os = "windows"))]
+        let handle = None;
+        tracing::debug!("setting up media controls");
+        player.set_up_media_controls(handle);
+    }
     Ok(())
 }

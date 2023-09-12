@@ -23,9 +23,7 @@ pub struct Podcast {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(
-    Queryable, Selectable, Serialize, Deserialize, Associations, Identifiable, Clone, Debug,
-)]
+#[derive(Queryable, Selectable, Serialize, Deserialize, Associations, Identifiable, Clone, Debug)]
 #[diesel(table_name = crate::schema::episodes)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(belongs_to(Podcast))]

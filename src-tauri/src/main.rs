@@ -51,18 +51,11 @@ async fn main() {
             let mut conn = db_connect();
             let uri_str = request.uri().to_string();
             if uri_str.starts_with("localimages://podcast/") {
-                let podcast_id: i32 = uri_str
-                    .strip_prefix("localimages://podcast/")
-                    .unwrap()
-                    .parse()
-                    .unwrap();
+                let podcast_id: i32 = uri_str.strip_prefix("localimages://podcast/").unwrap().parse().unwrap();
                 let podcast = podcast::find_one(podcast_id, &mut conn).unwrap();
                 let path = PathBuf::from(podcast.local_image_path);
                 if path.exists() {
-                    return Response::builder()
-                        .status(200)
-                        .body(fs::read(path).unwrap())
-                        .unwrap();
+                    return Response::builder().status(200).body(fs::read(path).unwrap()).unwrap();
                 }
             }
             Response::builder().status(404).body(Vec::new()).unwrap()
@@ -93,7 +86,8 @@ async fn main() {
             commands::player_action,
             commands::find_progress_for_episode,
             commands::set_volume,
-            commands::seek
+            commands::seek,
+            commands::set_up_media_controls
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

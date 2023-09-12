@@ -1,3 +1,4 @@
+use std::ffi::c_void;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -26,9 +27,12 @@ impl Player {
         }
     }
 
+    pub fn set_up_media_controls(&self, handle: Option<*mut c_void>) {
+        self.new_player.set_up_media_controls(handle);
+    }
+
     pub fn play_episode(&self, episode: Episode, starting_seconds: u64) -> AppResult<()> {
-        self.new_player
-            .play_episode(episode, starting_seconds as i32)
+        self.new_player.play_episode(episode, starting_seconds as i32)
     }
 
     pub fn play(&self) {

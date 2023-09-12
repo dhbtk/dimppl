@@ -1,8 +1,9 @@
+use std::ffi::c_void;
 use std::fs::File;
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::atomic::{AtomicI64, Ordering};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -12,6 +13,9 @@ use chrono::Utc;
 use diesel::associations::HasTable;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
 use lofty::AudioFile;
+use souvlaki::{
+    MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig, SeekDirection,
+};
 
 use symphonia::core::audio::{AsAudioBufferRef, AudioBuffer, Signal};
 use symphonia::core::codecs::CODEC_TYPE_NULL;
@@ -19,16 +23,17 @@ use symphonia::core::errors::Error;
 use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, Track};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
-use symphonia::core::units::Time;
+use symphonia::core::units::{Time, TimeStamp};
 use tauri::{AppHandle, Manager};
 use tokio::time::Instant;
 
 use crate::database::db_connect;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::{podcast, Episode, EpisodeProgress, Podcast};
 use crate::player::{output, PlayerStatus};
 
+#[derive(Clone)]
 pub struct NewPlayer {
     app_handle: AppHandle,
     sender_channel: Arc<Mutex<Option<Sender<PlayerCommand>>>>,
@@ -39,6 +44,8 @@ pub struct NewPlayer {
     is_paused: Arc<RwLock<bool>>,
     volume: Arc<RwLock<f32>>,
     playback_speed: Arc<RwLock<f32>>,
+    media_controls: Arc<RwLock<Option<MediaControls>>>,
+    last_artwork_episode_id: Arc<RwLock<i32>>,
 }
 
 enum PlayerCommand {
@@ -60,7 +67,87 @@ impl NewPlayer {
             is_paused: Arc::new(RwLock::new(false)),
             volume: Arc::new(RwLock::new(1.0)),
             playback_speed: Arc::new(RwLock::new(1.0)),
+            media_controls: Arc::new(RwLock::new(None)),
+            last_artwork_episode_id: Arc::new(RwLock::new(0)),
         }
+    }
+
+    pub fn set_up_media_controls(&self, handle: Option<*mut c_void>) {
+        let config = PlatformConfig {
+            dbus_name: "dimppl-desktop",
+            display_name: "Dimppl",
+            hwnd: handle,
+            podcast_controls: true,
+        };
+        let mut controls = MediaControls::new(config).unwrap();
+        let cloned_self = self.clone();
+        controls
+            .attach(move |event| {
+                tracing::info!("MediaControlEvent: {:?}", &event);
+                match event {
+                    MediaControlEvent::Play => {
+                        cloned_self.play();
+                    }
+                    MediaControlEvent::Pause => {
+                        cloned_self.pause();
+                    }
+                    MediaControlEvent::Toggle => {
+                        if *cloned_self.is_paused.read().unwrap() {
+                            cloned_self.play();
+                        } else {
+                            cloned_self.pause();
+                        }
+                    }
+                    MediaControlEvent::Next => {
+                        // TODO: queue?
+                        cloned_self.skip_forwards();
+                    }
+                    MediaControlEvent::Previous => {
+                        cloned_self.skip_backwards();
+                    }
+                    MediaControlEvent::Stop => {
+                        // TODO
+                    }
+                    MediaControlEvent::SkipBackward(duration) => {
+                        let elapsed_seconds = cloned_self.played_millis.load(Ordering::Relaxed) / 1000;
+                        let pos = elapsed_seconds - duration.as_secs() as i64;
+                        cloned_self.seek_to(pos);
+                    }
+                    MediaControlEvent::SkipForward(duration) => {
+                        let elapsed_seconds = cloned_self.played_millis.load(Ordering::Relaxed) / 1000;
+                        let pos = elapsed_seconds + duration.as_secs() as i64;
+                        cloned_self.seek_to(pos);
+                    }
+                    MediaControlEvent::Seek(direction) => match direction {
+                        SeekDirection::Forward => cloned_self.skip_forwards(),
+                        SeekDirection::Backward => cloned_self.skip_backwards(),
+                    },
+                    MediaControlEvent::SeekBy(direction, duration) => {
+                        let elapsed_seconds = cloned_self.played_millis.load(Ordering::Relaxed) / 1000;
+                        let delta = if direction == SeekDirection::Forward {
+                            duration.as_secs() as i64
+                        } else {
+                            -(duration.as_secs() as i64)
+                        };
+                        cloned_self.seek_to(elapsed_seconds + delta);
+                    }
+                    MediaControlEvent::SetPosition(pos) => {
+                        cloned_self.seek_to(pos.0.as_secs() as i64);
+                    }
+                    MediaControlEvent::OpenUri(_) => {}
+                    MediaControlEvent::Raise => {
+                        if let Some(window) = cloned_self.app_handle.get_window("main") {
+                            let _ = window.unminimize();
+                        }
+                    }
+                    MediaControlEvent::Quit => {
+                        cloned_self.app_handle.exit(0);
+                    }
+                }
+            })
+            .unwrap();
+
+        *self.media_controls.write().unwrap() = Some(controls);
     }
 
     pub fn play_episode(&self, episode: Episode, starting_at: i32) -> AppResult<()> {
@@ -76,10 +163,9 @@ impl NewPlayer {
         let tagged_file = lofty::read_from_path(episode.content_local_path.as_str())?;
         let file_duration = tagged_file.properties().duration().as_secs();
         *self.episode_length.write().unwrap() = file_duration as i64;
-        self.played_millis
-            .store((starting_at as i64) * 1000, Ordering::Relaxed);
+        self.played_millis.store((starting_at as i64) * 1000, Ordering::Relaxed);
         *self.is_paused.write().unwrap() = false;
-        self.broadcast_status_self();
+        self.broadcast_status_self(true);
         let path_str = episode.content_local_path.as_str();
         let mut hint = Hint::new();
         let source = {
@@ -92,12 +178,7 @@ impl NewPlayer {
             Box::new(File::open(path)?)
         };
         let mss = MediaSourceStream::new(source, Default::default());
-        let probed = symphonia::default::get_probe().format(
-            &hint,
-            mss,
-            &Default::default(),
-            &Default::default(),
-        )?;
+        let probed = symphonia::default::get_probe().format(&hint, mss, &Default::default(), &Default::default())?;
         self.play_track(probed.format, starting_at)?;
         Ok(())
     }
@@ -110,7 +191,7 @@ impl NewPlayer {
             let _ = channel.send(PlayerCommand::Resume);
         }
         *self.is_paused.write().unwrap() = false;
-        self.broadcast_status_self();
+        self.broadcast_status_self(true);
     }
 
     pub fn pause(&self) {
@@ -121,7 +202,7 @@ impl NewPlayer {
             let _ = channel.send(PlayerCommand::Pause);
         }
         *self.is_paused.write().unwrap() = true;
-        self.broadcast_status_self();
+        self.broadcast_status_self(true);
     }
 
     pub fn skip_forwards(&self) {
@@ -149,7 +230,7 @@ impl NewPlayer {
         *self.playback_speed.write().unwrap() = speed;
     }
 
-    fn broadcast_status_self(&self) {
+    fn broadcast_status_self(&self, save_progress: bool) {
         let episode = self.playing_episode.read().unwrap();
         let elapsed = self.played_millis.load(Ordering::Relaxed);
         Self::broadcast_status(
@@ -159,10 +240,13 @@ impl NewPlayer {
             elapsed,
             *self.episode_length.read().unwrap(),
             false,
-            false,
+            save_progress,
+            &mut self.media_controls.write().unwrap(),
+            &mut self.last_artwork_episode_id.write().unwrap(),
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn broadcast_status(
         app_handle: &AppHandle,
         episode_container: Option<(Episode, Podcast)>,
@@ -171,10 +255,12 @@ impl NewPlayer {
         duration: i64,
         loading: bool,
         save_progress: bool,
+        maybe_controls: &mut Option<MediaControls>,
+        last_seen_episode_id: &mut i32,
     ) {
         if save_progress && episode_container.is_some() {
             use crate::schema::episode_progresses::dsl::*;
-            let (episode, _podcast) = episode_container.clone().unwrap();
+            let (episode, _) = episode_container.clone().unwrap();
             let elapsed_seconds = elapsed / 1000;
             let mut conn = db_connect();
             tracing::trace!(
@@ -201,40 +287,48 @@ impl NewPlayer {
             PlayerStatus {
                 is_paused: paused,
                 episode: episode_container.as_ref().map(|(ep, _)| ep.clone()),
-                podcast: episode_container.map(|(_, podcast)| podcast),
+                podcast: episode_container.as_ref().map(|(_, podcast)| podcast.clone()),
                 elapsed: elapsed / 1000,
                 duration,
                 loading,
             },
         );
+        if save_progress {
+            if let Some(controls) = maybe_controls {
+                if let Some((episode, podcast)) = episode_container {
+                    if *last_seen_episode_id != episode.id {
+                        *last_seen_episode_id = episode.id;
+                        let cover_url = Some(podcast.image_url.as_str());
+                        let _ = controls.set_metadata(MediaMetadata {
+                            title: Some(episode.title.as_str()),
+                            album: None,
+                            artist: Some(podcast.name.as_str()),
+                            cover_url,
+                            duration: Some(Duration::from_secs(episode.length.unsigned_abs() as u64)),
+                        });
+                    }
+                    let progress = Some(MediaPosition(Duration::from_millis(elapsed.unsigned_abs())));
+                    let _ = controls.set_playback(if paused {
+                        MediaPlayback::Paused { progress }
+                    } else {
+                        MediaPlayback::Playing { progress }
+                    });
+                } else {
+                    let _ = controls.set_metadata(Default::default());
+                    let _ = controls.set_playback(MediaPlayback::Stopped);
+                }
+            }
+        }
     }
 
     fn play_track(&self, mut reader: Box<dyn FormatReader>, starting_at: i32) -> AppResult<()> {
         let track = first_supported_track(reader.tracks());
-        let mut track_id = match track {
+        let track_id = match track {
             Some(track) => track.id,
             _ => return Ok(()),
         };
-        let mut seek_ts = if starting_at != 0 {
-            let seek_to = SeekTo::Time {
-                time: Time::from(starting_at.unsigned_abs()),
-                track_id: Some(track_id),
-            };
-
-            // Attempt the seek. If the seek fails, ignore the error and return a seek timestamp of 0 so
-            // that no samples are trimmed.
-            match reader.seek(SeekMode::Accurate, seek_to) {
-                Ok(seeked_to) => seeked_to.required_ts,
-                Err(Error::ResetRequired) => {
-                    track_id = first_supported_track(reader.tracks()).unwrap().id;
-                    0
-                }
-                Err(err) => {
-                    // Don't give-up on a seek error.
-                    tracing::warn!("seek error: {}", err);
-                    0
-                }
-            }
+        let seek_ts = if starting_at != 0 {
+            Self::calculate_seek_timestamp(&mut reader, starting_at, track_id)
         } else {
             // If not seeking, the seek timestamp is 0.
             0
@@ -257,159 +351,161 @@ impl NewPlayer {
         }
         *sender_mutex = Some(tx);
 
-        let cloned_atomic = self.played_millis.clone();
-        let cloned_handle = self.app_handle.clone();
-        let cloned_episode = self.playing_episode.clone();
-        let cloned_duration = self.episode_length.clone();
-        let cloned_pause = self.is_paused.clone();
-        let cloned_volume = self.volume.clone();
+        let cloned_self = self.clone();
 
-        let handle = std::thread::Builder::new()
-            .name("new player thread".into())
-            .spawn(move || {
-                let mut save_timer = Instant::now();
-                let mut update_timer = Instant::now();
-                let mut is_paused = false;
-                let track = match reader.tracks().iter().find(|track| track.id == track_id) {
-                    Some(track) => track,
-                    _ => return Ok(()),
-                };
-
-                // Create a decoder for the track.
-                let mut decoder = symphonia::default::get_codecs()
-                    .make(&track.codec_params, &Default::default())?;
-
-                // Get the selected track's timebase and duration.
-                let tb = track.codec_params.time_base;
-
-                let mut audio_output: Option<Box<dyn output::AudioOutput>> = None;
-                let mut sample_buffer: Option<AudioBuffer<f32>> = None;
-                // Decode and play the packets belonging to the selected track.
-                let _: Result<(), Error> = loop {
-                    if let Ok(command) = rx.try_recv() {
-                        match command {
-                            PlayerCommand::Pause => is_paused = true,
-                            PlayerCommand::Resume => is_paused = false,
-                            PlayerCommand::Seek(new_position) => {
-                                let old_ts = seek_ts;
-                                seek_ts = {
-                                    let seek_to = SeekTo::Time {
-                                        time: Time::from(new_position),
-                                        track_id: Some(track_id),
-                                    };
-                                    match reader.seek(SeekMode::Accurate, seek_to) {
-                                        Ok(seeked_to) => seeked_to.required_ts,
-                                        Err(_) => old_ts,
-                                    }
-                                };
-                            }
-                            PlayerCommand::Stop => {
-                                break Ok(());
-                            }
-                        }
-                    }
-                    if is_paused {
-                        std::thread::sleep(Duration::from_millis(10));
-                        continue;
-                    }
-
-                    // Get the next packet from the format reader.
-                    let packet = match reader.next_packet() {
-                        Ok(packet) => packet,
-                        Err(err) => break Err(err),
-                    };
-
-                    // If the packet does not belong to the selected track, skip it.
-                    if packet.track_id() != track_id {
-                        continue;
-                    }
-
-                    // Decode the packet into audio samples.
-                    match decoder.decode(&packet) {
-                        Ok(decoded) => {
-                            // If the audio output is not open, try to open it.
-                            if audio_output.is_none() {
-                                // Get the audio buffer specification. This is a description of the decoded
-                                // audio buffer's sample format and sample rate.
-                                let spec = *decoded.spec();
-
-                                // Get the capacity of the decoded buffer. Note that this is capacity, not
-                                // length! The capacity of the decoded buffer is constant for the life of the
-                                // decoder, but the length is not.
-                                let duration = decoded.capacity() as u64;
-
-                                // Try to open the audio output.
-                                audio_output.replace(output::try_open(spec, duration).unwrap());
-                            } else {
-                                // TODO: Check the audio spec. and duration hasn't changed.
-                            }
-
-                            if sample_buffer.is_none() {
-                                sample_buffer = Some(AudioBuffer::<f32>::new(
-                                    decoded.capacity() as u64,
-                                    *decoded.spec(),
-                                ));
-                            }
-                            if let Some(buffer) = &mut sample_buffer {
-                                // Write the decoded audio samples to the audio output if the presentation timestamp
-                                // for the packet is >= the seeked position (0 if not seeking).
-                                if packet.ts() >= seek_ts {
-                                    if let Some(time_base) = tb {
-                                        let time = time_base.calc_time(packet.ts);
-                                        cloned_atomic
-                                            .store((time.seconds * 1000) as i64, Ordering::Relaxed);
-                                    }
-                                    if let Some(audio_output) = &mut audio_output {
-                                        decoded.convert(buffer);
-                                        let volume = *cloned_volume.read().unwrap();
-                                        buffer.transform(|sample| sample * volume);
-                                        audio_output.write(buffer.as_audio_buffer_ref()).unwrap()
-                                    }
-                                }
-                            }
-                            if save_timer.elapsed().as_millis() > 1000 {
-                                save_timer = Instant::now();
-                                NewPlayer::broadcast_status(
-                                    &cloned_handle,
-                                    cloned_episode.read().unwrap().clone(),
-                                    *cloned_pause.read().unwrap(),
-                                    cloned_atomic.load(Ordering::Relaxed),
-                                    *cloned_duration.read().unwrap(),
-                                    false,
-                                    true,
-                                );
-                            } else if update_timer.elapsed().as_millis() > 100 {
-                                update_timer = Instant::now();
-                                NewPlayer::broadcast_status(
-                                    &cloned_handle,
-                                    cloned_episode.read().unwrap().clone(),
-                                    *cloned_pause.read().unwrap(),
-                                    cloned_atomic.load(Ordering::Relaxed),
-                                    *cloned_duration.read().unwrap(),
-                                    false,
-                                    false,
-                                );
-                            }
-                        }
-                        Err(Error::DecodeError(err)) => {
-                            // Decode errors are not fatal. Print the error message and try to decode the next
-                            // packet as usual.
-                            tracing::warn!("decode error: {}", err);
-                        }
-                        Err(err) => break Err(err),
-                    }
-                };
-                tracing::debug!("thread is now dying");
-                Ok(())
-            })
-            .unwrap();
+        let handle = Self::spawn_player_thread(reader, track_id, seek_ts, rx, cloned_self).unwrap();
         *self.thread_handle.lock().unwrap() = Some(handle);
         Ok(())
+    }
+
+    fn spawn_player_thread(
+        reader: Box<dyn FormatReader>,
+        track_id: u32,
+        seek_ts: TimeStamp,
+        rx: Receiver<PlayerCommand>,
+        cloned_self: NewPlayer,
+    ) -> Result<JoinHandle<Result<(), AppError>>, AppError> {
+        let handle = std::thread::Builder::new()
+            .name("new player thread".into())
+            .spawn(move || Self::player_thread_loop(reader, track_id, seek_ts, rx, &cloned_self))?;
+        Ok(handle)
+    }
+
+    fn player_thread_loop(
+        mut reader: Box<dyn FormatReader>,
+        track_id: u32,
+        mut seek_ts: TimeStamp,
+        rx: Receiver<PlayerCommand>,
+        cloned_self: &NewPlayer,
+    ) -> Result<(), AppError> {
+        let mut save_timer = Instant::now();
+        let mut update_timer = Instant::now();
+        let mut is_paused = false;
+        let mut interrupted = false;
+        let track = match reader.tracks().iter().find(|track| track.id == track_id) {
+            Some(track) => track,
+            _ => return Ok(()),
+        };
+
+        let mut decoder = symphonia::default::get_codecs().make(&track.codec_params, &Default::default())?;
+        let track_time_base = track.codec_params.time_base;
+        let mut audio_output: Option<Box<dyn output::AudioOutput>> = None;
+        let mut sample_buffer: Option<AudioBuffer<f32>> = None;
+        let _: Result<(), Error> = loop {
+            if let Ok(command) = rx.try_recv() {
+                match command {
+                    PlayerCommand::Pause => is_paused = true,
+                    PlayerCommand::Resume => is_paused = false,
+                    PlayerCommand::Seek(new_position) => {
+                        let old_ts = seek_ts;
+                        seek_ts = {
+                            let seek_to = SeekTo::Time {
+                                time: Time::from(new_position),
+                                track_id: Some(track_id),
+                            };
+                            match reader.seek(SeekMode::Accurate, seek_to) {
+                                Ok(seeked_to) => seeked_to.required_ts,
+                                Err(_) => old_ts,
+                            }
+                        };
+                    }
+                    PlayerCommand::Stop => {
+                        interrupted = true;
+                        break Ok(());
+                    }
+                }
+            }
+            if is_paused {
+                std::thread::sleep(Duration::from_millis(10));
+                continue;
+            }
+
+            let packet = match reader.next_packet() {
+                Ok(packet) => packet,
+                Err(err) => break Err(err),
+            };
+
+            if packet.track_id() != track_id {
+                continue;
+            }
+
+            match decoder.decode(&packet) {
+                Ok(decoded) => {
+                    if audio_output.is_none() {
+                        let spec = *decoded.spec();
+                        let duration = decoded.capacity() as u64;
+                        audio_output.replace(output::try_open(spec, duration).unwrap());
+                    } else {
+                        // TODO: Check the audio spec. and duration hasn't changed.
+                    }
+
+                    if sample_buffer.is_none() {
+                        sample_buffer = Some(AudioBuffer::<f32>::new(decoded.capacity() as u64, *decoded.spec()));
+                    }
+                    if let Some(buffer) = &mut sample_buffer {
+                        if packet.ts() >= seek_ts {
+                            if let Some(time_base) = track_time_base {
+                                let time = time_base.calc_time(packet.ts);
+                                cloned_self
+                                    .played_millis
+                                    .store((time.seconds * 1000) as i64, Ordering::Relaxed);
+                            }
+                            if let Some(audio_output) = &mut audio_output {
+                                decoded.convert(buffer);
+                                let volume = *cloned_self.volume.read().unwrap();
+                                buffer.transform(|sample| sample * volume);
+                                audio_output.write(buffer.as_audio_buffer_ref()).unwrap()
+                            }
+                        }
+                    }
+                    if save_timer.elapsed().as_millis() > 1000 {
+                        save_timer = Instant::now();
+                        cloned_self.broadcast_status_self(true);
+                    } else if update_timer.elapsed().as_millis() > 100 {
+                        update_timer = Instant::now();
+                        cloned_self.broadcast_status_self(true);
+                    }
+                }
+                Err(Error::DecodeError(err)) => {
+                    // Decode errors are not fatal. Print the error message and try to decode the next
+                    // packet as usual.
+                    tracing::warn!("decode error: {}", err);
+                }
+                Err(err) => break Err(err),
+            }
+        };
+        if !interrupted {
+            // TODO: mark episode as done
+            cloned_self.broadcast_status_self(true);
+            *cloned_self.playing_episode.write().unwrap() = None;
+            cloned_self.played_millis.store(0, Ordering::Relaxed);
+            *cloned_self.episode_length.write().unwrap() = 0;
+            cloned_self.broadcast_status_self(true);
+        }
+        tracing::debug!("thread is now dying");
+        Ok(())
+    }
+
+    fn calculate_seek_timestamp(reader: &mut Box<dyn FormatReader>, starting_at: i32, track_id: u32) -> TimeStamp {
+        let seek_to = SeekTo::Time {
+            time: Time::from(starting_at.unsigned_abs()),
+            track_id: Some(track_id),
+        };
+
+        // Attempt the seek. If the seek fails, ignore the error and return a seek timestamp of 0 so
+        // that no samples are trimmed.
+        match reader.seek(SeekMode::Accurate, seek_to) {
+            Ok(seeked_to) => seeked_to.required_ts,
+            Err(Error::ResetRequired) => 0,
+            Err(err) => {
+                // Don't give-up on a seek error.
+                tracing::warn!("seek error: {}", err);
+                0
+            }
+        }
     }
 }
 
 fn first_supported_track(tracks: &[Track]) -> Option<&Track> {
-    tracks
-        .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+    tracks.iter().find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
 }

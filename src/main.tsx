@@ -11,12 +11,15 @@ import { router } from './routeDefinitions.ts'
 import { listen } from '@tauri-apps/api/event'
 import { DownloadContextProvider } from './routes/DownloadContextProvider.tsx'
 import { PlayerContextProvider } from './routes/PlayerContextProvider.tsx'
+import { invoke } from '@tauri-apps/api'
 
 const queryClient = new QueryClient()
 
 listen<string>('invalidate-cache', event => {
   queryClient.invalidateQueries({ queryKey: [event.payload] })
 })
+
+invoke<void>('set_up_media_controls')
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

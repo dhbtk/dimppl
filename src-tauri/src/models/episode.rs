@@ -36,10 +36,7 @@ impl EpisodeWithProgress {
     }
 }
 
-pub fn list_for_podcast(
-    given_podcast_id: i32,
-    conn: &mut SqliteConnection,
-) -> AppResult<Vec<EpisodeWithProgress>> {
+pub fn list_for_podcast(given_podcast_id: i32, conn: &mut SqliteConnection) -> AppResult<Vec<EpisodeWithProgress>> {
     fix_missing_progress_entries(given_podcast_id, conn)?;
     let episodes_with_progress = EpisodeProgress::table()
         .inner_join(Episode::table())
@@ -59,14 +56,9 @@ pub fn find_one(episode_id: i32, conn: &mut SqliteConnection) -> AppResult<Episo
     Ok(results)
 }
 
-pub fn find_one_progress(
-    the_episode_id: i32,
-    conn: &mut SqliteConnection,
-) -> AppResult<EpisodeProgress> {
+pub fn find_one_progress(the_episode_id: i32, conn: &mut SqliteConnection) -> AppResult<EpisodeProgress> {
     use crate::schema::episode_progresses::dsl::*;
-    let results = episode_progresses
-        .filter(episode_id.eq(the_episode_id))
-        .first(conn)?;
+    let results = episode_progresses.filter(episode_id.eq(the_episode_id)).first(conn)?;
     Ok(results)
 }
 
@@ -91,10 +83,7 @@ pub async fn start_download(
     let total_length = response.content_length().unwrap_or(0);
     tracing::debug!("progress_indicator.set_progress total_length {total_length}");
     progress_indicator
-        .set_progress(
-            &episode,
-            EpisodeDownloadProgress::new(downloaded, total_length),
-        )
+        .set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length))
         .await;
 
     let extension = extract_episode_filename_extension(&episode, &response);
@@ -113,10 +102,7 @@ pub async fn start_download(
         downloaded = new;
         if event_emit_ts.elapsed().as_millis() > 100 {
             progress_indicator
-                .set_progress(
-                    &episode,
-                    EpisodeDownloadProgress::new(downloaded, total_length),
-                )
+                .set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length))
                 .await;
             event_emit_ts = Instant::now();
         }
@@ -132,8 +118,7 @@ pub async fn start_download(
     diesel::update(Episode::table())
         .filter(crate::schema::episodes::dsl::id.eq(episode_id))
         .set((
-            crate::schema::episodes::dsl::content_local_path
-                .eq(path.to_str().context("to_str")?.to_string()),
+            crate::schema::episodes::dsl::content_local_path.eq(path.to_str().context("to_str")?.to_string()),
             crate::schema::episodes::dsl::length.eq(file_duration as i32),
         ))
         .execute(conn)?;
@@ -165,10 +150,7 @@ fn extract_episode_filename_extension(episode: &Episode, response: &Response) ->
         .unwrap()
 }
 
-fn fix_missing_progress_entries(
-    given_podcast_id: i32,
-    conn: &mut SqliteConnection,
-) -> AppResult<()> {
+fn fix_missing_progress_entries(given_podcast_id: i32, conn: &mut SqliteConnection) -> AppResult<()> {
     let podcast = super::podcast::find_one(given_podcast_id, conn)?;
     let episodes = Episode::belonging_to(&podcast)
         .select(Episode::as_select())

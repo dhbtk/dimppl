@@ -17,10 +17,7 @@ use crate::models::{Episode, Podcast};
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     use crate::schema::podcasts::dsl::*;
-    let results = podcasts
-        .order_by(name.asc())
-        .select(Podcast::as_select())
-        .load(conn)?;
+    let results = podcasts.order_by(name.asc()).select(Podcast::as_select()).load(conn)?;
     Ok(results)
 }
 
@@ -30,10 +27,7 @@ pub fn find_one(podcast_id: i32, conn: &mut SqliteConnection) -> AppResult<Podca
     Ok(results)
 }
 
-pub async fn import_podcast_from_url(
-    url: String,
-    conn: &mut SqliteConnection,
-) -> AppResult<Podcast> {
+pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -> AppResult<Podcast> {
     let parsed_podcast = download_rss_feed(url.clone(), None).await?;
     let inserted_podcast = {
         use crate::schema::podcasts::dsl::*;
@@ -55,8 +49,7 @@ pub async fn sync_podcasts(conn: &mut SqliteConnection) -> AppResult<()> {
     let podcasts = list_all(conn)?;
     for podcast in &podcasts {
         tracing::debug!("Updating podcast: {}", podcast.name.as_str());
-        let parsed_podcast =
-            download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
+        let parsed_podcast = download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
         let updated_podcast = UpdatedPodcast::new(
             podcast.id,
             NewPodcast::from_parsed(&parsed_podcast, podcast.feed_url.clone()),
@@ -83,10 +76,7 @@ pub async fn sync_podcasts(conn: &mut SqliteConnection) -> AppResult<()> {
     Ok(())
 }
 
-pub async fn download_rss_feed(
-    url: String,
-    identifier: Option<String>,
-) -> AppResult<ParsedPodcast> {
+pub async fn download_rss_feed(url: String, identifier: Option<String>) -> AppResult<ParsedPodcast> {
     let content = reqwest::get(url).await?.bytes().await?;
     let channel = Channel::read_from(&content[..])?;
     let podcast = ParsedPodcast::from_channel(channel, identifier).await?;
@@ -216,10 +206,7 @@ pub struct ParsedPodcast {
 }
 
 impl ParsedPodcast {
-    pub async fn from_channel(
-        channel: Channel,
-        maybe_identifier: Option<String>,
-    ) -> AppResult<Self> {
+    pub async fn from_channel(channel: Channel, maybe_identifier: Option<String>) -> AppResult<Self> {
         let mut episodes: Vec<ParsedEpisode> = Vec::new();
         for item in &channel.items {
             let episode = ParsedEpisode::from_item(item.clone())?;
@@ -234,10 +221,7 @@ impl ParsedPodcast {
         };
         let instance = Self {
             guid: identifier.clone(),
-            author: channel
-                .itunes_ext
-                .and_then(|atom| atom.author)
-                .unwrap_or("".into()),
+            author: channel.itunes_ext.and_then(|atom| atom.author).unwrap_or("".into()),
             local_image_path,
             image_url: channel.image.map(|i| i.url).unwrap_or("".into()),
             name: channel.title,
