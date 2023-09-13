@@ -100,6 +100,7 @@ dependencies = [
  "futures",
  "futures-util",
  "gethostname",
+ "libsqlite3-sys",
  "lofty",
  "mime2ext",
  "rb",
@@ -2204,6 +2205,7 @@ version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afc22eff61b133b115c6e8c74e818c628d6d5e7a502afea6f64dee076dd94326"
 dependencies = [
+ "cc",
  "pkg-config",
  "vcpkg",
 ]
@@ -3820,7 +3822,7 @@ dependencies = [
 [[package]]
 name = "souvlaki"
 version = "0.6.1"
-source = "git+https://github.com/dhbtk/souvlaki.git#8cc11d7c739e4eb8f6f178aed5749ccb25934a42"
+source = "git+https://github.com/dhbtk/souvlaki.git#8e3ef55993ef4058e16ffe1395f76fa417a46d09"
 dependencies = [
  "block",
  "cocoa 0.24.1",

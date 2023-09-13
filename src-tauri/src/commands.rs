@@ -177,7 +177,7 @@ pub async fn set_up_media_controls(app: AppHandle, player: tauri::State<'_, Arc<
     #[allow(unused)]
     if let Some(window) = app.get_window("main") {
         #[cfg(target_os = "windows")]
-        let handle = Some(window.hwnd().unwrap() as *mut _);
+        let handle = Some(window.hwnd().unwrap().0 as *mut _);
         #[cfg(not(target_os = "windows"))]
         let handle = None;
         tracing::debug!("setting up media controls");
