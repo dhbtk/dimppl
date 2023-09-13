@@ -1,9 +1,18 @@
 import React, { PropsWithChildren, useEffect, useRef, useState } from 'react'
+import styled from 'styled-components'
 
 interface ModalProps {
   isOpen: boolean
   onClose?: () => void
 }
+
+const StyledModal = styled.dialog`
+  padding: 16px;
+  border-radius: 9px;
+  background-color: #F2F2F2;
+  box-shadow: 8px 8px 16px 8px rgba(0,0,0,0.1);
+  width: 40%;
+`
 
 export const Modal: React.FC<PropsWithChildren<ModalProps>> = ({ children, isOpen, onClose }) => {
   const [isModalOpen, setModalOpen] = useState(isOpen)
@@ -39,8 +48,8 @@ export const Modal: React.FC<PropsWithChildren<ModalProps>> = ({ children, isOpe
   }, [modalRef, setModalOpen])
 
   return (
-    <dialog ref={modalRef}>
+    <StyledModal ref={modalRef}>
       {children}
-    </dialog>
+    </StyledModal>
   )
 }

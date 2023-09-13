@@ -119,15 +119,16 @@ const PlayButton: React.FC<{ episode: Episode }> = ({ episode }) => {
   }
 }
 
-export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, progress: EpisodeProgress }> = ({ episode: initialEpisode, podcast, progress }) => {
+export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, progress: EpisodeProgress, style?: React.CSSProperties }> = ({ episode: initialEpisode, podcast, progress, style }) => {
   const query = useQuery({
     queryKey: [`episode-${initialEpisode.id}`],
     queryFn: () => podcastApi.getEpisode(initialEpisode.id),
     initialData: initialEpisode
   })
   const episode: Episode = query.data
+  const myStyles = {...style, width: 'calc(100% - 8px)' }
   return (
-    <EpisodeWrapper key={episode.id}>
+    <EpisodeWrapper key={episode.id} style={myStyles}>
       <EpisodeImageBox url={episode.imageUrl || podcastUtil.imageUrl(podcast)}/>
       <EpisodeInfoBox>
         <EpisodeLink to="/app" search={{}} params={{}} title={episode.title}>
