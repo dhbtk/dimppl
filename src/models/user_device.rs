@@ -1,11 +1,15 @@
+use anyhow::Context;
+use axum::headers::{HeaderMap, HeaderValue};
+
 use crate::database::AsyncConnection;
 use crate::error_handling::AppResult;
-use crate::models::{User, UserDevice};
+use crate::models::{user, User, UserDevice};
 use crate::schema::user_devices::table as user_devices;
 use chrono::{NaiveDateTime, Utc};
 use diesel::associations::HasTable;
-use diesel::{insert_into, Insertable, SelectableHelper};
+use diesel::{insert_into, ExpressionMethods, Insertable, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -52,8 +56,43 @@ pub async fn create<'a>(
     Ok(user_device)
 }
 
+pub async fn user_from_http_request<'a>(
+    headers: &HeaderMap<HeaderValue>,
+    conn: &mut AsyncConnection<'a>,
+) -> AppResult<User> {
+    use crate::schema::user_devices::dsl::*;
+
+    let unauthorized = Err(crate::error_handling::AppError::unauthorized());
+    let Ok(token) = token_from_request(headers) else { return unauthorized; };
+
+    let Ok(device) = user_devices.select(UserDevice::as_select())
+        .filter(access_token.eq(token))
+        .first(conn)
+        .await else {
+        return unauthorized
+    };
+    let Ok(user) = user::find_one(device.user_id, conn).await else {
+        return unauthorized
+    };
+
+    Ok(user)
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct CreateDeviceRequest {
     pub user_access_key: String,
     pub device_name: String,
+}
+
+fn token_from_request(headers: &HeaderMap<HeaderValue>) -> AppResult<String> {
+    let unauthorized = Err(crate::error_handling::AppError::unauthorized());
+    let token = headers
+        .get("Authorization")
+        .context("bearer token not found")?
+        .to_str()?;
+    if token.starts_with("Bearer ") {
+        Ok(token[7..].to_string())
+    } else {
+        unauthorized
+    }
 }

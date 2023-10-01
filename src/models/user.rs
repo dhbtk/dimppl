@@ -28,6 +28,14 @@ pub async fn find_by_access_key<'a>(
         .await?)
 }
 
+pub async fn find_one<'a>(id: i64, conn: &mut AsyncConnection<'a>) -> AppResult<User> {
+    Ok(users
+        .filter(crate::schema::users::id.eq(id))
+        .select(User::as_select())
+        .first(conn)
+        .await?)
+}
+
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::users)]
 pub struct NewUser {
