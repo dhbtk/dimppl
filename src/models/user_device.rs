@@ -60,6 +60,29 @@ pub async fn user_from_http_request<'a>(
     headers: &HeaderMap<HeaderValue>,
     conn: &mut AsyncConnection<'a>,
 ) -> AppResult<User> {
+    let (user, _) = user_and_device_from_http_request(headers, conn).await?;
+
+    Ok(user)
+}
+
+pub async fn user_and_device_from_http_request<'a>(
+    headers: &HeaderMap<HeaderValue>,
+    conn: &mut AsyncConnection<'a>,
+) -> AppResult<(User, UserDevice)> {
+    let unauthorized = Err(crate::error_handling::AppError::unauthorized());
+
+    let device = device_from_http_request(headers, conn).await?;
+    let Ok(user) = user::find_one(device.user_id, conn).await else {
+        return unauthorized
+    };
+
+    Ok((user, device))
+}
+
+pub async fn device_from_http_request<'a>(
+    headers: &HeaderMap<HeaderValue>,
+    conn: &mut AsyncConnection<'a>,
+) -> AppResult<UserDevice> {
     use crate::schema::user_devices::dsl::*;
 
     let unauthorized = Err(crate::error_handling::AppError::unauthorized());
@@ -71,11 +94,7 @@ pub async fn user_from_http_request<'a>(
         .await else {
         return unauthorized
     };
-    let Ok(user) = user::find_one(device.user_id, conn).await else {
-        return unauthorized
-    };
-
-    Ok(user)
+    Ok(device)
 }
 
 #[derive(Serialize, Deserialize)]

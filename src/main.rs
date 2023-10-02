@@ -33,7 +33,3 @@ async fn main() {
         .await
         .unwrap();
 }
-
-async fn root() -> &'static str {
-    "dimppl-server"
-}
