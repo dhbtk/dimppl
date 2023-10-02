@@ -19,6 +19,7 @@ diesel::table! {
         guid -> Text,
         url -> Text,
         updated_at -> Timestamp,
+        deleted_at -> Nullable<Timestamp>,
     }
 }
 
