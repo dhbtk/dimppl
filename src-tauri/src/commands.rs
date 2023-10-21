@@ -4,7 +4,7 @@ use crate::config::{Config, ConfigWrapper};
 use crate::database::db_connect;
 use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
-use crate::models::episode::EpisodeWithProgress;
+use crate::models::episode::{EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::{episode, podcast, EpisodeProgress};
 use crate::models::{Episode, Podcast};
@@ -12,6 +12,7 @@ use crate::player::Player;
 use std::ops::Deref;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
+use uuid::Uuid;
 
 #[tauri::command]
 pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
@@ -36,6 +37,24 @@ pub async fn sync_podcasts(app: AppHandle) -> AppResult<()> {
     });
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn find_last_played() -> Option<EpisodeWithPodcast> {
+    let mut connection = db_connect();
+    episode::find_last_played(&mut connection)
+}
+
+#[tauri::command]
+pub fn list_listen_history() -> AppResult<Vec<EpisodeWithPodcast>> {
+    let mut connection = db_connect();
+    episode::list_listen_history(&mut connection)
+}
+
+#[tauri::command]
+pub fn list_latest_episodes() -> AppResult<Vec<EpisodeWithPodcast>> {
+    let mut connection = db_connect();
+    episode::list_latest_episodes(&mut connection)
 }
 
 #[tauri::command]
@@ -80,12 +99,30 @@ pub async fn register_device(device_name: String, config_wrapper: tauri::State<'
     Ok(())
 }
 
-#[tauri::command]
-pub async fn import_podcast(url: String, app: AppHandle) -> AppResult<()> {
+async fn do_import_podcast(url: String, app: AppHandle) -> AppResult<()> {
     let mut conn = db_connect();
     let podcast = podcast::import_podcast_from_url(url, &mut conn).await?;
     app.send_invalidate_cache(EntityChange::Podcast(podcast.id))?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn import_podcast(url: String, app: AppHandle) -> AppResult<String> {
+    let import_id = Uuid::new_v4().to_string();
+    let import_id_clone = import_id.clone();
+    tokio::spawn(async move {
+        let result = do_import_podcast(url, app.clone()).await;
+        match result {
+            Ok(_) => {
+                let _ = app.emit_all("import-podcast-done", import_id_clone.clone());
+            }
+            Err(e) => {
+                let _ = app.emit_all("import-podcast-error", (import_id_clone.clone(), e.to_string()));
+            }
+        }
+    });
+
+    Ok(import_id)
 }
 
 #[tauri::command]

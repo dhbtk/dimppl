@@ -21,13 +21,21 @@ use crate::errors::AppResult;
 use crate::extensions::{ResponseExt, StrOptionExt};
 use crate::models::episode_downloads::{EpisodeDownloadProgress, EpisodeDownloads};
 use crate::models::podcast::NewProgress;
-use crate::models::{Episode, EpisodeProgress};
+use crate::models::{Episode, EpisodeProgress, Podcast};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EpisodeWithProgress {
     pub episode: Episode,
     pub progress: EpisodeProgress,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EpisodeWithPodcast {
+    pub episode: Episode,
+    pub progress: EpisodeProgress,
+    pub podcast: Podcast,
 }
 
 impl EpisodeWithProgress {
@@ -59,6 +67,68 @@ pub fn find_one(episode_id: i32, conn: &mut SqliteConnection) -> AppResult<Episo
 pub fn find_one_progress(the_episode_id: i32, conn: &mut SqliteConnection) -> AppResult<EpisodeProgress> {
     use crate::schema::episode_progresses::dsl::*;
     let results = episode_progresses.filter(episode_id.eq(the_episode_id)).first(conn)?;
+    Ok(results)
+}
+
+pub fn find_last_played(conn: &mut SqliteConnection) -> Option<EpisodeWithPodcast> {
+    use crate::schema::episode_progresses::dsl::*;
+    use crate::schema::episodes::dsl::*;
+    use crate::schema::podcasts::dsl::podcasts;
+    episodes
+        .inner_join(episode_progresses)
+        .inner_join(podcasts)
+        .filter(listened_seconds.gt(0))
+        .order_by(updated_at.desc())
+        .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
+        .first(conn)
+        .map(|(progress, episode, podcast)| EpisodeWithPodcast {
+            episode,
+            progress,
+            podcast,
+        })
+        .ok()
+}
+
+pub fn list_listen_history(conn: &mut SqliteConnection) -> AppResult<Vec<EpisodeWithPodcast>> {
+    use crate::schema::episode_progresses::dsl::*;
+    use crate::schema::episodes::dsl::*;
+    use crate::schema::podcasts::dsl::podcasts;
+    let results = episodes
+        .inner_join(episode_progresses)
+        .inner_join(podcasts)
+        .filter(listened_seconds.gt(0))
+        .order_by(updated_at.desc())
+        .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
+        .limit(100)
+        .load::<(EpisodeProgress, Episode, Podcast)>(conn)?
+        .into_iter()
+        .map(|(progress, episode, podcast)| EpisodeWithPodcast {
+            episode,
+            progress,
+            podcast,
+        })
+        .collect::<Vec<_>>();
+    Ok(results)
+}
+
+pub fn list_latest_episodes(conn: &mut SqliteConnection) -> AppResult<Vec<EpisodeWithPodcast>> {
+    use crate::schema::episode_progresses::dsl::*;
+    use crate::schema::episodes::dsl::*;
+    use crate::schema::podcasts::dsl::podcasts;
+    let results = episodes
+        .inner_join(episode_progresses)
+        .inner_join(podcasts)
+        .order_by(episode_date.desc())
+        .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
+        .limit(100)
+        .load::<(EpisodeProgress, Episode, Podcast)>(conn)?
+        .into_iter()
+        .map(|(progress, episode, podcast)| EpisodeWithPodcast {
+            episode,
+            progress,
+            podcast,
+        })
+        .collect::<Vec<_>>();
     Ok(results)
 }
 
