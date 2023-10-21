@@ -41,6 +41,12 @@ export interface EpisodeProgress {
   updatedAt: string
 }
 
+export interface EpisodeWithPodcast {
+  episode: Episode
+  podcast: Podcast
+  progress: EpisodeProgress
+}
+
 export const podcastApi = {
   listAll: async (): Promise<Podcast[]> => {
     return await invoke<Podcast[]>('list_all_podcasts')
@@ -48,8 +54,17 @@ export const podcastApi = {
   syncPodcasts: async (): Promise<void> => {
     return await invoke<void>('sync_podcasts')
   },
-  importPodcast: async (url: string): Promise<void> => {
-    await invoke<void>('import_podcast', { url })
+  findLastPlayed: async (): Promise<EpisodeWithPodcast | null> => {
+    return await invoke<EpisodeWithPodcast | null>('find_last_played')
+  },
+  listListenHistory: async (): Promise<EpisodeWithPodcast[]> => {
+    return await invoke<EpisodeWithPodcast[]>('list_listen_history')
+  },
+  listLatestEpisodes: async (): Promise<EpisodeWithPodcast[]> => {
+    return await invoke<EpisodeWithPodcast[]>('list_latest_episodes')
+  },
+  importPodcast: async (url: string): Promise<string> => {
+    return await invoke<string>('import_podcast', { url })
   },
   listEpisodes: async (podcastId: number): Promise<EpisodeWithProgress[]> => {
     return await invoke<EpisodeWithProgress[]>('list_podcast_episodes', { id: podcastId })

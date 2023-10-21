@@ -5,7 +5,7 @@ import { OnboardingDeviceNameRoute } from './routes/onboarding/OnboardingDeviceN
 import { AppRoute } from './routes/app/AppRoute.tsx'
 import { HomeRoute } from './routes/app/home/HomeRoute.tsx'
 import { PodcastRoute } from './routes/app/podcast/PodcastRoute.tsx'
-import { podcastApi } from './backend/podcastApi.ts'
+import { EpisodeWithPodcast, podcastApi } from './backend/podcastApi.ts'
 
 export const rootRoute = new RootRoute({
   component: RootRouteComponent
@@ -30,7 +30,13 @@ export const appRoute = new Route({
 export const appHomeRoute = new Route({
   getParentRoute: () => appRoute,
   path: '/',
-  component: HomeRoute
+  component: HomeRoute,
+  loader: async (): Promise<{ lastPlayed: EpisodeWithPodcast | null, history: EpisodeWithPodcast[], latest: EpisodeWithPodcast[] }> => {
+    const lastPlayed = await podcastApi.findLastPlayed()
+    const history = await podcastApi.listListenHistory()
+    const latest = await podcastApi.listLatestEpisodes()
+    return { lastPlayed, history, latest }
+  }
 })
 
 export const podcastRoute = new Route({
