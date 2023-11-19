@@ -1,5 +1,5 @@
 import React from 'react'
-import { Episode, EpisodeProgress, Podcast, podcastApi } from '../../../backend/podcastApi.ts'
+import { Episode, EpisodeProgress, EpisodeWithPodcast, Podcast, podcastApi } from '../../../backend/podcastApi.ts'
 import { useQuery } from '@tanstack/react-query'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { IconButton } from '../IconButton.tsx'
@@ -95,10 +95,10 @@ const ProgressBar = styled.div<{ percent: string }>`
 export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, progress: EpisodeProgress, style?: React.CSSProperties }> = ({ episode: initialEpisode, podcast, progress, style }) => {
   const query = useQuery({
     queryKey: [`episode-${initialEpisode.id}`],
-    queryFn: () => podcastApi.getEpisode(initialEpisode.id),
-    initialData: initialEpisode
+    queryFn: () => podcastApi.getEpisodeFull(initialEpisode.id),
+    initialData: { episode: initialEpisode, podcast, progress } as EpisodeWithPodcast
   })
-  const episode: Episode = query.data
+  const { episode } = query.data
   const myStyles = {...style, width: 'calc(100% - 8px)' }
   return (
     <EpisodeWrapper key={episode.id} style={myStyles}>
