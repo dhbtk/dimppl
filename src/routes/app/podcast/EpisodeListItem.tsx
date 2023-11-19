@@ -1,13 +1,13 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { Episode, EpisodeProgress, Podcast, podcastApi } from '../../../backend/podcastApi.ts'
 import { useQuery } from '@tanstack/react-query'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { IconButton } from '../IconButton.tsx'
 import styled from 'styled-components'
 import { Link } from '@tanstack/react-router'
-import { DownloadContext } from '../../DownloadContextProvider.tsx'
-import { PlayerContext } from '../../PlayerContextProvider.tsx'
 import { episodeDate, formatHumane, ratio } from '../../../timeUtil.ts'
+import { PlayButton } from './PlayButton.tsx'
+import { DownloadEpisodeButton } from './DownloadEpisodeButton.tsx'
 
 const EpisodeWrapper = styled.div`
   margin: 8px;
@@ -92,33 +92,6 @@ const ProgressBar = styled.div<{ percent: string }>`
   background-color: #808080;
 `
 
-const DownloadEpisodeButton: React.FC<{ episode: Episode }> = ({ episode }) => {
-  const allDownloadsStatus = useContext(DownloadContext)
-  const downloaded = episode.contentLocalPath.length !== 0
-  const loading = allDownloadsStatus.find(it => it.episode.id === episode.id) !== undefined
-  const onClick = () => podcastApi.downloadEpisode(episode.id)
-  const icon = downloaded ? 'file_download_done' : (loading ? 'downloading' : 'download_for_offline')
-  return (
-    <IconButton icon={icon} disabled={loading || downloaded} onClick={onClick}/>
-  )
-}
-
-const PlayButton: React.FC<{ episode: Episode }> = ({ episode }) => {
-  const playerStatus = useContext(PlayerContext)
-  if (playerStatus.episode?.id === episode.id) {
-    return (
-      <IconButton
-        icon={playerStatus.isPaused ? 'play_circle' : 'pause'}
-        onClick={() => podcastApi.playerAction(playerStatus.isPaused ? 'play' : 'pause')}
-        />
-    )
-  } else {
-    return (
-      <IconButton icon="play_circle" title="Play" onClick={() => podcastApi.playEpisode(episode.id)}/>
-    )
-  }
-}
-
 export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, progress: EpisodeProgress, style?: React.CSSProperties }> = ({ episode: initialEpisode, podcast, progress, style }) => {
   const query = useQuery({
     queryKey: [`episode-${initialEpisode.id}`],
@@ -131,7 +104,7 @@ export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, pro
     <EpisodeWrapper key={episode.id} style={myStyles}>
       <EpisodeImageBox url={episode.imageUrl || podcastUtil.imageUrl(podcast)}/>
       <EpisodeInfoBox>
-        <EpisodeLink to="/app" search={{}} params={{}} title={episode.title}>
+        <EpisodeLink to={`episode/${episode.id}`} search={{}} params={{}} title={episode.title}>
           {episode.title}
         </EpisodeLink>
         <div style={{ display: 'flex', height: 120 }}>

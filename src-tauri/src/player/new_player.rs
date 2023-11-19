@@ -262,6 +262,7 @@ impl NewPlayer {
             use crate::schema::episode_progresses::dsl::*;
             let (episode, _) = episode_container.clone().unwrap();
             let elapsed_seconds = elapsed / 1000;
+            let completed_listening = (episode.length as i64) - elapsed_seconds < 300; // 5 minutes
             let mut conn = db_connect();
             tracing::trace!(
                 "{} seconds elapsed, saving progress for episode id {}",
@@ -272,6 +273,7 @@ impl NewPlayer {
                 .filter(episode_id.eq(episode.id))
                 .set((
                     listened_seconds.eq(elapsed_seconds as i32),
+                    completed.eq(completed_listening),
                     updated_at.eq(Utc::now().naive_utc()),
                 ))
                 .execute(&mut conn);

@@ -70,6 +70,24 @@ pub fn find_one_progress(the_episode_id: i32, conn: &mut SqliteConnection) -> Ap
     Ok(results)
 }
 
+pub fn find_one_full(the_episode_id: i32, conn: &mut SqliteConnection) -> AppResult<EpisodeWithPodcast> {
+    use crate::schema::episode_progresses::dsl::episode_progresses;
+    use crate::schema::episodes::dsl::*;
+    use crate::schema::podcasts::dsl::podcasts;
+    let results = episodes
+        .inner_join(episode_progresses)
+        .inner_join(podcasts)
+        .filter(id.eq(the_episode_id))
+        .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
+        .first(conn)
+        .map(|(progress, episode, podcast)| EpisodeWithPodcast {
+            episode,
+            progress,
+            podcast,
+        })?;
+    Ok(results)
+}
+
 pub fn find_last_played(conn: &mut SqliteConnection) -> Option<EpisodeWithPodcast> {
     use crate::schema::episode_progresses::dsl::*;
     use crate::schema::episodes::dsl::*;

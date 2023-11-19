@@ -4,6 +4,10 @@ import styled from 'styled-components'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { PlayerContext } from '../../PlayerContextProvider.tsx'
 import { ImageOverlayButton } from '../ImageOverlayButton.tsx'
+import { Link } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { formatHumane } from '../../../timeUtil.ts'
+import { IconButton } from '../IconButton.tsx'
 
 const WrapperDiv = styled.div`
   padding: 4px 12px 0;
@@ -34,12 +38,26 @@ const Header = styled.h1`
   font-size: 24px;
 `
 
-const Title = styled.h2`
+const Title = styled(Link)`
   font-size: 20px;
+  display: block;
+  cursor: default;
+  
+  &:hover {
+    text-decoration: underline;
+    cursor: default;
+  }
 `
-const Subtitle = styled.h3`
+const Subtitle = styled(Link)`
   font-size: 16px;
   color: #8E8E8E;
+  display: block;
+  cursor: default;
+  
+  &:hover {
+    text-decoration: underline;
+    cursor: default;
+  }
 `
 
 const PlayButton: React.FC<{ episode: Episode }> = ({ episode }) => {
@@ -59,7 +77,12 @@ const PlayButton: React.FC<{ episode: Episode }> = ({ episode }) => {
 }
 
 export const LastPlayedCard: React.FC<{ lastPlayed: EpisodeWithPodcast }> = ({ lastPlayed }) => {
-  const { episode, podcast } = lastPlayed
+  const query = useQuery({
+    queryKey: [`episode-${lastPlayed.episode.id}`],
+    queryFn: () => podcastApi.getEpisodeFull(lastPlayed.episode.id),
+    initialData: lastPlayed
+  })
+  const { episode, progress, podcast } = query.data
   return (
     <WrapperDiv>
       <Header>Continue Ouvindo</Header>
@@ -68,8 +91,20 @@ export const LastPlayedCard: React.FC<{ lastPlayed: EpisodeWithPodcast }> = ({ l
           <PlayButton episode={episode}/>
         </BigImage>
         <DescriptionWrapper>
-          <Title>{podcast.name}</Title>
-          <Subtitle>{episode.title}</Subtitle>
+          <Title to={`episode/${episode.id}`} search={{}} params={{}}>{episode.title}</Title>
+          <Subtitle to={`episode/${episode.id}`} search={{}} params={{}}>{podcast.name}</Subtitle>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              {
+                progress.listenedSeconds === 0 ? (
+                  formatHumane(episode.length)
+                ) : (
+                  `${formatHumane(episode.length - progress.listenedSeconds)} restantes`
+                )
+              }
+            </div>
+            <IconButton icon="more_vert"/>
+          </div>
         </DescriptionWrapper>
       </div>
     </WrapperDiv>

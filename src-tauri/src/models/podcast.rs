@@ -5,7 +5,7 @@ use anyhow::Context;
 use chrono::{NaiveDateTime, Utc};
 use diesel::associations::HasTable;
 use diesel::prelude::*;
-use diesel::{insert_into, SqliteConnection};
+use diesel::{insert_into, update, SqliteConnection};
 use futures::StreamExt;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
@@ -64,7 +64,13 @@ pub async fn sync_podcasts(conn: &mut SqliteConnection) -> AppResult<()> {
                     .filter(guid.eq(episode.guid.clone()))
                     .first::<Episode>(conn)
             };
-            if result.is_err() {
+            if let Ok(episode_record) = result {
+                use crate::schema::episodes::dsl::*;
+                update(episodes)
+                    .set(content_url.eq(episode.content_url.clone()))
+                    .filter(id.eq(episode_record.id))
+                    .execute(conn)?;
+            } else {
                 use crate::schema::episodes::dsl::*;
                 insert_into(episodes::table())
                     .values(NewEpisode::from_parsed(episode, podcast.id))

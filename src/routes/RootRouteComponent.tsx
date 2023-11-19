@@ -9,9 +9,9 @@ export const RootRouteComponent: React.FC = () => {
     configApi.load().then(configData => {
       console.log(configData)
       if (configData.accessToken.length !== 0 && configData.userAccessKey.length !== 0) {
-        navigate({ to: appHomeRoute.to })
+        return navigate({ to: appHomeRoute.to })
       } else {
-        navigate({ to: onboardingUserAccountRoute.to })
+        return navigate({ to: onboardingUserAccountRoute.to })
       }
     })
   }, [])

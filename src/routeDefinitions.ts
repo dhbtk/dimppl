@@ -6,6 +6,7 @@ import { AppRoute } from './routes/app/AppRoute.tsx'
 import { HomeRoute } from './routes/app/home/HomeRoute.tsx'
 import { PodcastRoute } from './routes/app/podcast/PodcastRoute.tsx'
 import { EpisodeWithPodcast, podcastApi } from './backend/podcastApi.ts'
+import { EpisodeRoute } from './routes/app/episode/EpisodeRoute.tsx'
 
 export const rootRoute = new RootRoute({
   component: RootRouteComponent
@@ -54,10 +55,20 @@ export const podcastRoute = new Route({
   }
 })
 
+export const episodeRoute = new Route({
+  getParentRoute: () => appRoute,
+  path: 'episode/$episodeId',
+  component: EpisodeRoute,
+  loader: async (params): Promise<EpisodeWithPodcast> => {
+    const id = parseInt(params.params.episodeId, 10)
+    return podcastApi.getEpisodeFull(id)
+  }
+})
+
 const routeTree = rootRoute.addChildren([
   onboardingUserAccountRoute,
   onboardingDeviceNameRoute,
-  appRoute.addChildren([appHomeRoute, podcastRoute])
+  appRoute.addChildren([appHomeRoute, podcastRoute, episodeRoute])
 ])
 
 export const router = new Router({ routeTree })

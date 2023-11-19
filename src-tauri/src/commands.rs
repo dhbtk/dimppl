@@ -158,13 +158,24 @@ pub fn get_episode(id: i32) -> AppResult<Episode> {
 }
 
 #[tauri::command]
+pub fn get_episode_full(id: i32) -> AppResult<EpisodeWithPodcast> {
+    let mut conn = db_connect();
+    episode::find_one_full(id, &mut conn)
+}
+
+#[tauri::command]
 pub fn play_episode(id: i32, player: tauri::State<'_, Arc<Player>>) -> AppResult<()> {
     let player = player.deref().clone();
     let mut conn = db_connect();
     let episode = episode::find_one(id, &mut conn)?;
     let progress = episode::find_one_progress(id, &mut conn)?;
+    let start_seconds = if progress.completed {
+        0
+    } else {
+        progress.listened_seconds as u64
+    };
     std::thread::spawn(move || {
-        let _ = player.play_episode(episode, progress.listened_seconds as u64);
+        let _ = player.play_episode(episode, start_seconds);
     });
     Ok(())
 }

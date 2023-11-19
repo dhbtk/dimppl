@@ -85,6 +85,7 @@ async fn main() {
             commands::list_podcast_episodes,
             commands::download_episode,
             commands::get_episode,
+            commands::get_episode_full,
             commands::play_episode,
             commands::player_action,
             commands::find_progress_for_episode,
