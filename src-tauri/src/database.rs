@@ -3,11 +3,22 @@ use diesel::sqlite::Sqlite;
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use std::error::Error;
+use std::thread::sleep;
+use std::time::Duration;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub fn db_connect() -> SqliteConnection {
-    SqliteConnection::establish(database_path().as_ref()).unwrap()
+    loop {
+        let connection = SqliteConnection::establish(database_path().as_ref());
+        match connection {
+            Ok(conn) => return conn,
+            Err(e) => {
+                tracing::error!("Error connecting to database: {}", e);
+                sleep(Duration::from_millis(100));
+            }
+        }
+    }
 }
 
 pub fn migrate_database(

@@ -8,6 +8,7 @@ import { Link } from '@tanstack/react-router'
 import { episodeDate, formatHumane, ratio } from '../../../timeUtil.ts'
 import { PlayButton } from './PlayButton.tsx'
 import { DownloadEpisodeButton } from './DownloadEpisodeButton.tsx'
+import { episodeRoute } from '../../../routeDefinitions.ts'
 
 const EpisodeWrapper = styled.div`
   margin: 8px;
@@ -104,7 +105,7 @@ export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, pro
     <EpisodeWrapper key={episode.id} style={myStyles}>
       <EpisodeImageBox url={episode.imageUrl || podcastUtil.imageUrl(podcast)}/>
       <EpisodeInfoBox>
-        <EpisodeLink to={`episode/${episode.id}`} search={{}} params={{}} title={episode.title}>
+        <EpisodeLink to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }} title={episode.title}>
           {episode.title}
         </EpisodeLink>
         <div style={{ display: 'flex', height: 120 }}>

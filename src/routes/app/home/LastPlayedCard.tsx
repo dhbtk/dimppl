@@ -8,6 +8,7 @@ import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { formatHumane } from '../../../timeUtil.ts'
 import { IconButton } from '../IconButton.tsx'
+import { episodeRoute } from '../../../routeDefinitions.ts'
 
 const WrapperDiv = styled.div`
   padding: 4px 12px 0;
@@ -91,8 +92,8 @@ export const LastPlayedCard: React.FC<{ lastPlayed: EpisodeWithPodcast }> = ({ l
           <PlayButton episode={episode}/>
         </BigImage>
         <DescriptionWrapper>
-          <Title to={`episode/${episode.id}`} search={{}} params={{}}>{episode.title}</Title>
-          <Subtitle to={`episode/${episode.id}`} search={{}} params={{}}>{podcast.name}</Subtitle>
+          <Title to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }}>{episode.title}</Title>
+          <Subtitle to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }}>{podcast.name}</Subtitle>
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
               {
