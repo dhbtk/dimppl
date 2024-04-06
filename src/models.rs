@@ -31,6 +31,7 @@ pub struct Podcast {
     pub user_id: i64,
     pub guid: String,
     pub url: String,
+    pub deleted_at: Option<chrono::NaiveDateTime>,
     pub updated_at: chrono::NaiveDateTime,
 }
 

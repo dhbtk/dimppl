@@ -21,6 +21,71 @@ pub struct CreatePodcastEpisodeRequest {
     pub guid: String,
 }
 
+#[derive(Eq, PartialEq, Debug)]
+pub enum SaveResult {
+    Saved,
+    NotSaved,
+}
+
+impl From<usize> for SaveResult {
+    fn from(value: usize) -> Self {
+        if value > 0 {
+            SaveResult::Saved
+        } else {
+            SaveResult::NotSaved
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Selectable, Insertable, Queryable, Debug, PartialEq, Clone)]
+#[diesel(table_name = crate::schema::podcasts)]
+pub struct SyncPodcast {
+    pub guid: String,
+    pub url: String,
+    pub deleted_at: Option<NaiveDateTime>,
+    pub updated_at: NaiveDateTime,
+}
+
+impl From<Podcast> for SyncPodcast {
+    fn from(value: Podcast) -> Self {
+        let Podcast {
+            guid,
+            url,
+            deleted_at,
+            updated_at,
+            ..
+        } = value;
+        Self {
+            guid,
+            url,
+            deleted_at,
+            updated_at,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Selectable, Insertable, Queryable)]
+#[diesel(table_name = crate::schema::podcast_episodes)]
+pub struct SyncPodcastEpisode {
+    pub guid: String,
+    pub url: String,
+    pub listened_seconds: i32,
+    pub completed: bool,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SyncStateRequest {
+    pub podcasts: Vec<SyncPodcast>,
+    pub episodes: HashMap<String, Vec<SyncPodcastEpisode>>,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct SyncStateResponse {
+    pub podcasts: Vec<SyncPodcast>,
+    pub episodes: HashMap<String, Vec<SyncPodcastEpisode>>,
+}
+
 pub async fn create<'a>(
     create_request: &CreatePodcastRequest,
     conn: &mut AsyncConnection<'a>,
@@ -125,51 +190,36 @@ pub async fn sync_upsert_episodes<'a>(
     Ok(())
 }
 
-#[derive(Eq, PartialEq, Debug)]
-pub enum SaveResult {
-    Saved,
-    NotSaved,
-}
-
-impl From<usize> for SaveResult {
-    fn from(value: usize) -> Self {
-        if value > 0 {
-            SaveResult::Saved
-        } else {
-            SaveResult::NotSaved
-        }
+pub async fn get_sync_response<'a>(
+    user: &User,
+    conn: &mut AsyncConnection<'a>,
+) -> AppResult<SyncStateResponse> {
+    let podcasts = {
+        use crate::schema::podcasts::dsl::*;
+        podcasts
+            .filter(user_id.eq(user.id))
+            .order(guid.asc())
+            .select(Podcast::as_select())
+            .load(conn)
+            .await?
+    };
+    let mut map: HashMap<String, Vec<SyncPodcastEpisode>> = HashMap::new();
+    for podcast in &podcasts {
+        let episodes = {
+            use crate::schema::podcast_episodes::dsl::*;
+            podcast_episodes
+                .filter(podcast_id.eq(podcast.id))
+                .order(guid.asc())
+                .select(SyncPodcastEpisode::as_select())
+                .load(conn)
+                .await?
+        };
+        map.insert(podcast.guid.clone(), episodes);
     }
-}
-
-#[derive(Serialize, Deserialize, Selectable, Insertable)]
-#[diesel(table_name = crate::schema::podcasts)]
-pub struct SyncPodcast {
-    pub guid: String,
-    pub url: String,
-    pub deleted_at: Option<NaiveDateTime>,
-    pub updated_at: NaiveDateTime,
-}
-
-#[derive(Serialize, Deserialize, Selectable, Insertable)]
-#[diesel(table_name = crate::schema::podcast_episodes)]
-pub struct SyncPodcastEpisode {
-    pub guid: String,
-    pub url: String,
-    pub listened_seconds: i32,
-    pub completed: bool,
-    pub updated_at: NaiveDateTime,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SyncStateRequest {
-    pub podcasts: Vec<SyncPodcast>,
-    pub episodes: HashMap<String, SyncPodcastEpisode>,
-}
-
-#[derive(Serialize, Deserialize, Default)]
-pub struct SyncStateResponse {
-    pub podcasts: Vec<SyncPodcast>,
-    pub episodes: HashMap<String, SyncPodcastEpisode>,
+    Ok(SyncStateResponse {
+        podcasts: podcasts.into_iter().map(|p| p.into()).collect(),
+        episodes: map,
+    })
 }
 
 #[cfg(test)]
@@ -374,5 +424,59 @@ mod tests {
         assert_eq!(500, query[1].listened_seconds);
         assert!(query[1].completed);
         assert_eq!("https://ep3", query[2].url);
+    }
+
+    #[tokio::test]
+    #[serial]
+    pub async fn test_get_sync_response() {
+        let (state, _) = create_test_app();
+        let mut conn = state.pool.get().await.unwrap();
+        let (user, _device) = test_user_and_device(&mut conn).await.unwrap();
+        let existing_podcast = {
+            use crate::schema::podcasts::dsl::*;
+            diesel::insert_into(podcasts)
+                .values((
+                    user_id.eq(user.id),
+                    url.eq("https://google.com"),
+                    guid.eq("guid"),
+                    updated_at.eq(Local::now().naive_utc()),
+                ))
+                .returning(Podcast::as_returning())
+                .get_result(&mut conn)
+                .await
+                .unwrap()
+        };
+        let _episodes = {
+            use crate::schema::podcast_episodes::dsl::*;
+            diesel::insert_into(podcast_episodes)
+                .values(&[
+                    (
+                        podcast_id.eq(existing_podcast.id),
+                        guid.eq("ep1"),
+                        url.eq("https://ep1"),
+                        listened_seconds.eq(300),
+                        completed.eq(true),
+                        updated_at.eq(Local::now().naive_utc()),
+                    ),
+                    (
+                        podcast_id.eq(existing_podcast.id),
+                        guid.eq("ep2"),
+                        url.eq("https://ep2"),
+                        listened_seconds.eq(0),
+                        completed.eq(false),
+                        updated_at.eq(NaiveDateTime::default()),
+                    ),
+                ])
+                .returning(PodcastEpisode::as_returning())
+                .get_results(&mut conn)
+                .await
+                .unwrap()
+        };
+        let sync_response = get_sync_response(&user, &mut conn).await.unwrap();
+        assert_eq!(existing_podcast.guid, sync_response.podcasts[0].guid);
+        assert_eq!(1, sync_response.episodes.len());
+        assert_eq!("ep1", sync_response.episodes["guid"][0].guid);
+        assert_eq!("ep2", sync_response.episodes["guid"][1].guid);
+        assert_eq!(2, sync_response.episodes["guid"].len());
     }
 }
