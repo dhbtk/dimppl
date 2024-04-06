@@ -1,43 +1,52 @@
 html {
-    -webkit-user-drag: none;
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: default;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+  position: fixed;
+  overflow: hidden;
 }
 
 :root {
-    --contexify-menu-bgColor: #e8e8e8;
-    --contexify-separator-color: #d1d1d1;
-    --contexify-item-color: #444444;
-    --contexify-activeItem-color: #fff;
-    --contexify-activeItem-bgColor: #7b99f3;
-    --contexify-rightSlot-color: #b4b4b4;
-    --contexify-activeRightSlot-color: #fff;
-    --contexify-arrow-color: #444444;
-    --contexify-activeArrow-color: #fff;
+  --contexify-menu-bgColor: #e8e8e8;
+  --contexify-separator-color: #d1d1d1;
+  --contexify-item-color: #444444;
+  --contexify-activeItem-color: #fff;
+  --contexify-activeItem-bgColor: #7b99f3;
+  --contexify-rightSlot-color: #b4b4b4;
+  --contexify-activeRightSlot-color: #fff;
+  --contexify-arrow-color: #444444;
+  --contexify-activeArrow-color: #fff;
 }
 
 input, textarea, select, button, img {
-    -webkit-user-drag: none;
+  -webkit-user-drag: none;
 }
 
 body {
-    margin: 0;
-    padding: 0;
-    font-size: 13px;
-    font-family: -apple-system;
-    color: #444444;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  font-family: -apple-system;
+  color: #444444;
+  position: fixed;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #FFF;
+  }
 }
 
 #root {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .material-icons-outlined {
-    color: inherit;
-    font-variation-settings:
-            'FILL' 0,
-            'wght' 200,
-            'GRAD' 0,
-            'opsz' 24;
+  color: inherit;
+  font-variation-settings: 'FILL' 0,
+  'wght' 200,
+  'GRAD' 0,
+  'opsz' 24;
 }
