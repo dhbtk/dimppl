@@ -10,6 +10,8 @@ use diesel::associations::HasTable;
 use diesel::{insert_into, ExpressionMethods, Insertable, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 
+#[cfg(test)]
+use crate::models::user::NewUser;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -114,4 +116,21 @@ fn token_from_request(headers: &HeaderMap<HeaderValue>) -> AppResult<String> {
     } else {
         unauthorized
     }
+}
+
+#[cfg(test)]
+pub async fn test_user_and_device<'a>(
+    conn: &mut AsyncConnection<'a>,
+) -> AppResult<(User, UserDevice)> {
+    let user = user::create(&NewUser::default(), conn).await.unwrap();
+    let device = create(
+        &CreateDeviceRequest {
+            user_access_key: user.access_key.clone(),
+            device_name: "Test Device".into(),
+        },
+        &user,
+        conn,
+    )
+    .await?;
+    Ok((user, device))
 }

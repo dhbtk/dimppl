@@ -12,6 +12,7 @@ mod fixtures;
 mod models;
 mod schema;
 mod state;
+mod sync_lock;
 
 #[tokio::main]
 async fn main() {
