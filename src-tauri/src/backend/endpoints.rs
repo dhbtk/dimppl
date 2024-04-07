@@ -1,4 +1,6 @@
-use crate::backend::models::{CreateDeviceRequest, CreateDeviceResponse, CreateUserResponse};
+use crate::backend::models::{
+    CreateDeviceRequest, CreateDeviceResponse, CreateUserResponse, SyncStateRequest, SyncStateResponse,
+};
 use crate::environment::API_URL;
 use crate::errors::AppResult;
 
@@ -21,6 +23,19 @@ pub async fn create_device(request: &CreateDeviceRequest) -> AppResult<CreateDev
         .send()
         .await?
         .json::<CreateDeviceResponse>()
+        .await?;
+    Ok(response)
+}
+
+pub async fn sync_remote_podcasts(token: &str, request: &SyncStateRequest) -> AppResult<SyncStateResponse> {
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("{API_URL}/sync"))
+        .header("Authorization", format!("Bearer {token}"))
+        .json(request)
+        .send()
+        .await?
+        .json::<SyncStateResponse>()
         .await?;
     Ok(response)
 }

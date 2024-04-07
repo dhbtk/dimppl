@@ -1,8 +1,9 @@
-import React from 'react'
-import { Outlet } from '@tanstack/react-router'
+import React, { useEffect } from 'react'
+import { Outlet, useNavigate } from '@tanstack/react-router'
 import { Sidebar } from './Sidebar.tsx'
 import { PlayerControlsTopBar } from './PlayerControlsTopBar.tsx'
 import styled from 'styled-components'
+import { appRoute, router, settingsRoute } from '../../routeDefinitions.ts'
 
 const RootDiv = styled.div`
   flex: 1;
@@ -20,6 +21,14 @@ const RootDiv = styled.div`
 `
 
 export const AppRoute: React.FC = () => {
+  const navigate = useNavigate()
+  useEffect(() => {
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        navigate({ to: settingsRoute.to })
+      }
+    })
+  })
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar/>

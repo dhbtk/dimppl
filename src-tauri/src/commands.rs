@@ -1,4 +1,5 @@
 use crate::backend::endpoints;
+use crate::backend::endpoints::sync_remote_podcasts;
 use crate::backend::models::CreateDeviceRequest;
 use crate::config::{Config, ConfigWrapper};
 use crate::database::db_connect;
@@ -6,6 +7,7 @@ use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::episode::{EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
+use crate::models::podcast::build_backend_sync_request;
 use crate::models::{episode, podcast, EpisodeProgress};
 use crate::models::{Episode, Podcast};
 use crate::player::Player;
@@ -21,10 +23,11 @@ pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
 }
 
 #[tauri::command]
-pub async fn sync_podcasts(app: AppHandle) -> AppResult<()> {
+pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
+    let config = config_wrapper.0.lock().unwrap().clone();
     tokio::spawn(async move {
         let mut connection = db_connect();
-        podcast::sync_podcasts(&mut connection).await.unwrap();
+        podcast::sync_podcasts(&mut connection, &app).await.unwrap();
         let podcasts = podcast::list_all(&mut connection).unwrap();
 
         app.send_invalidate_cache(EntityChange::AllPodcasts).unwrap();
@@ -33,6 +36,12 @@ pub async fn sync_podcasts(app: AppHandle) -> AppResult<()> {
             app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
                 .unwrap();
         }
+        let sync_state_request = build_backend_sync_request(&mut connection).unwrap();
+        let backend_sync_result = sync_remote_podcasts(&config.access_token, &sync_state_request)
+            .await
+            .unwrap();
+        tracing::info!("Sync result: {}", serde_json::to_string(&backend_sync_result).unwrap());
+
         let _ = app.emit_all("sync-podcasts-done", ());
     });
 

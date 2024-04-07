@@ -1,6 +1,8 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
+use crate::backend::models::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest};
 use anyhow::Context;
 use chrono::{NaiveDateTime, Utc};
 use diesel::associations::HasTable;
@@ -9,10 +11,12 @@ use diesel::{insert_into, update, SqliteConnection};
 use futures::StreamExt;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
+use tauri::{AppHandle, Manager};
 use uuid::Uuid;
 
 use crate::directories::images_dir;
 use crate::errors::AppResult;
+use crate::models::episode::list_for_podcast;
 use crate::models::{Episode, Podcast};
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
@@ -45,9 +49,10 @@ pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -
     Ok(inserted_podcast)
 }
 
-pub async fn sync_podcasts(conn: &mut SqliteConnection) -> AppResult<()> {
+pub async fn sync_podcasts(conn: &mut SqliteConnection, app_handle: &AppHandle) -> AppResult<()> {
     let podcasts = list_all(conn)?;
     for podcast in &podcasts {
+        let _ = app_handle.emit_all("sync-podcast-start", podcast.id);
         tracing::debug!("Updating podcast: {}", podcast.name.as_str());
         let parsed_podcast = download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
         let updated_podcast = UpdatedPodcast::new(
@@ -77,9 +82,27 @@ pub async fn sync_podcasts(conn: &mut SqliteConnection) -> AppResult<()> {
                     .execute(conn)?;
             }
         }
+        let _ = app_handle.emit_all("sync-podcast-stop", podcast.id);
     }
 
     Ok(())
+}
+
+pub fn build_backend_sync_request(conn: &mut SqliteConnection) -> AppResult<SyncStateRequest> {
+    let mut podcasts: Vec<SyncPodcast> = Vec::new();
+    let mut episodes: HashMap<String, Vec<SyncPodcastEpisode>> = HashMap::new();
+    let podcast_query = list_all(conn)?;
+    for podcast in podcast_query {
+        let sync_podcast = podcast.clone().into();
+        podcasts.push(sync_podcast);
+        let episode_list = list_for_podcast(podcast.id, conn)?;
+        episodes.insert(
+            podcast.guid.clone(),
+            episode_list.into_iter().map(|ep| ep.into()).collect(),
+        );
+    }
+
+    Ok(SyncStateRequest { podcasts, episodes })
 }
 
 pub async fn download_rss_feed(url: String, identifier: Option<String>) -> AppResult<ParsedPodcast> {

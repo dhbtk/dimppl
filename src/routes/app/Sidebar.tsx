@@ -1,14 +1,15 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Podcast, podcastApi } from '../../backend/podcastApi.ts'
 import { ImportPodcastButton } from './ImportPodcastButton.tsx'
 import { Link } from '@tanstack/react-router'
-import { appHomeRoute, podcastRoute } from '../../routeDefinitions.ts'
-import styled from 'styled-components'
+import { appHomeRoute, podcastRoute, settingsRoute } from '../../routeDefinitions.ts'
+import styled, { keyframes } from 'styled-components'
 import { WindowControls } from 'tauri-controls'
 import { podcastUtil } from '../../backend/podcastUtil.ts'
 import { DownloadMonitor } from './DownloadMonitor.tsx'
 import { SyncPodcastsButton } from './SyncPodcastsButton.tsx'
+import { listen } from '@tauri-apps/api/event'
 
 const SidebarLink = styled(Link)`
   display: flex;
@@ -20,12 +21,12 @@ const SidebarLink = styled(Link)`
   gap: 8px;
   border-radius: 4px;
   min-height: 33px;
-  
+
   &.active {
     background-color: #6E9BF9;
     color: #FFF;
   }
-  
+
   & > span {
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -33,9 +34,50 @@ const SidebarLink = styled(Link)`
   }
 `
 
+const rotate = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`
+
+const SpinningLoader = styled.div`
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .25);
+
+  & .material-icons-outlined {
+    animation: ${rotate} 1s linear infinite;
+  }
+`
+
+const podcastsCurrentlySyncing: Record<string, boolean> = {}
+
 export const Sidebar: React.FC = () => {
   const query = useQuery({ queryKey: ['allPodcasts'], queryFn: podcastApi.listAll })
   const queryItems: Podcast[] = query.data ?? []
+  const [syncingPodcasts, setSyncingPodcasts] = useState<Record<string, boolean>>(podcastsCurrentlySyncing)
+  useEffect(() => {
+    listen('sync-podcast-start', event => {
+      const id = parseInt(event.payload as string).toString()
+      podcastsCurrentlySyncing[id] = true
+      console.log('sync-podcast-start event', podcastsCurrentlySyncing)
+      setSyncingPodcasts({ ...podcastsCurrentlySyncing })
+    })
+  }, [setSyncingPodcasts])
+  useEffect(() => {
+    listen('sync-podcast-stop', event => {
+      const id = parseInt(event.payload as string).toString()
+      podcastsCurrentlySyncing[id] = false
+      console.log('sync-podcast-stop event', podcastsCurrentlySyncing)
+      setSyncingPodcasts({ ...podcastsCurrentlySyncing })
+    })
+  }, [setSyncingPodcasts])
 
   // @ts-ignore
   return (
@@ -80,8 +122,23 @@ export const Sidebar: React.FC = () => {
         </SidebarLink>
         {queryItems.map(podcast => (
           // @ts-ignore
-          <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }} className="sidebar-link">
-            <img src={podcastUtil.imageUrl(podcast)} width={25} height={25} alt=""/>
+          <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }}
+                       className="sidebar-link">
+            <div style={{
+              display: 'block',
+              width: 25,
+              height: 25,
+              backgroundImage: `url(${podcastUtil.imageUrl(podcast)})`,
+              backgroundSize: 'cover',
+              position: 'relative',
+              flexShrink: 0
+            }}>
+              {syncingPodcasts[podcast.id.toString()] && (
+                <SpinningLoader>
+                  <span className="material-icons-outlined">refresh</span>
+                </SpinningLoader>
+              )}
+            </div>
             <span title={podcast.name}>{podcast.name}</span>
           </SidebarLink>
         ))}
