@@ -7,11 +7,10 @@ use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::episode::{EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
-use crate::models::podcast::build_backend_sync_request;
+use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response};
 use crate::models::{episode, podcast, EpisodeProgress};
 use crate::models::{Episode, Podcast};
 use crate::player::Player;
-use diesel::SqliteConnection;
 use std::ops::Deref;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
@@ -29,30 +28,28 @@ pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, Conf
     tokio::spawn(async move {
         let mut connection = db_connect();
 
-        local_podcast_sync(&app, &mut connection).await;
+        podcast::sync_podcasts(&mut connection, &app).await.unwrap();
+
         let sync_state_request = build_backend_sync_request(&mut connection).unwrap();
         let backend_sync_result = sync_remote_podcasts(&config.access_token, &sync_state_request)
             .await
             .unwrap();
-        tracing::info!("Sync result: {}", serde_json::to_string(&backend_sync_result).unwrap());
+        store_backend_sync_response(&mut connection, backend_sync_result)
+            .await
+            .unwrap();
 
+        app.send_invalidate_cache(EntityChange::AllPodcasts).unwrap();
+        let podcasts = podcast::list_all(&mut connection).unwrap();
+        for podcast in &podcasts {
+            let _ = app.emit_all("sync-podcast-stop", podcast.id);
+            app.send_invalidate_cache(EntityChange::Podcast(podcast.id)).unwrap();
+            app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
+                .unwrap();
+        }
         let _ = app.emit_all("sync-podcasts-done", ());
     });
 
     Ok(())
-}
-
-async fn local_podcast_sync(app: &AppHandle, connection: &mut SqliteConnection) {
-    podcast::sync_podcasts(connection, app).await.unwrap();
-    let podcasts = podcast::list_all(connection).unwrap();
-
-    app.send_invalidate_cache(EntityChange::AllPodcasts).unwrap();
-    for podcast in &podcasts {
-        let _ = app.emit_all("sync-podcast-stop", podcast.id);
-        app.send_invalidate_cache(EntityChange::Podcast(podcast.id)).unwrap();
-        app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
-            .unwrap();
-    }
 }
 
 #[tauri::command]

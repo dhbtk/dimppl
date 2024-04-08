@@ -5,6 +5,7 @@ html {
   cursor: default;
   position: fixed;
   overflow: hidden;
+  width: 100vw;
 }
 
 :root {
@@ -31,6 +32,7 @@ body {
   color: #444444;
   position: fixed;
   overflow: hidden;
+  width: 100vw;
 }
 
 @media (prefers-color-scheme: dark) {

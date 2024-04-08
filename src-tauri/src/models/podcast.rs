@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::backend::models::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest};
+use crate::backend::models::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest, SyncStateResponse};
 use crate::database::db_connect;
 use anyhow::Context;
 use chrono::{NaiveDateTime, Utc};
@@ -12,6 +12,7 @@ use diesel::{insert_into, update, SqliteConnection};
 use futures::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
+use rss::extension::itunes::ITunesItemExtension;
 use rss::{Channel, Item};
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
@@ -19,7 +20,7 @@ use uuid::Uuid;
 use crate::directories::images_dir;
 use crate::errors::AppResult;
 use crate::models::episode::list_for_podcast;
-use crate::models::{Episode, Podcast};
+use crate::models::{Episode, EpisodeProgress, Podcast};
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     use crate::schema::podcasts::dsl::*;
@@ -33,6 +34,12 @@ pub fn find_one(podcast_id: i32, conn: &mut SqliteConnection) -> AppResult<Podca
     Ok(results)
 }
 
+pub fn find_one_by_guid(guid_value: &str, conn: &mut SqliteConnection) -> AppResult<Podcast> {
+    use crate::schema::podcasts::dsl::*;
+    let results = podcasts.filter(guid.eq(guid_value)).first(conn)?;
+    Ok(results)
+}
+
 pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -> AppResult<Podcast> {
     let parsed_podcast = download_rss_feed(url.clone(), None).await?;
     let inserted_podcast = {
@@ -43,10 +50,32 @@ pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -
             .get_result(conn)?
     };
     for episode in &parsed_podcast.episodes {
-        use crate::schema::episodes::dsl::*;
-        insert_into(episodes::table())
-            .values(NewEpisode::from_parsed(episode, inserted_podcast.id))
-            .execute(conn)?;
+        let episode_id: i32 = {
+            use crate::schema::episodes::dsl::*;
+            insert_into(episodes::table())
+                .values(NewEpisode::from_parsed(episode, inserted_podcast.id))
+                .returning(id)
+                .get_result(conn)?
+        };
+        let existing_progress_id: Option<i32> = {
+            use crate::schema::episode_progresses::dsl;
+            dsl::episode_progresses
+                .filter(dsl::episode_id.eq(episode_id))
+                .select(dsl::id)
+                .first(conn)
+                .optional()?
+        };
+        if existing_progress_id.is_none() {
+            let new_progress = NewProgress {
+                episode_id,
+                completed: false,
+                listened_seconds: 0,
+                updated_at: Utc::now().naive_utc(),
+            };
+            insert_into(EpisodeProgress::table())
+                .values(new_progress)
+                .execute(conn)?;
+        }
     }
     Ok(inserted_podcast)
 }
@@ -80,20 +109,91 @@ async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResu
                 .filter(guid.eq(episode.guid.clone()))
                 .first::<Episode>(&mut conn)
         };
-        if let Ok(episode_record) = result {
+        let episode_id: i32 = if let Ok(episode_record) = result {
             use crate::schema::episodes::dsl::*;
             update(episodes)
                 .set(content_url.eq(episode.content_url.clone()))
                 .filter(id.eq(episode_record.id))
-                .execute(&mut conn)?;
+                .returning(id)
+                .get_result(&mut conn)?
         } else {
             use crate::schema::episodes::dsl::*;
             insert_into(episodes::table())
                 .values(NewEpisode::from_parsed(episode, podcast.id))
+                .returning(id)
+                .get_result(&mut conn)?
+        };
+        let existing_progress_id: Option<i32> = {
+            use crate::schema::episode_progresses::dsl;
+            dsl::episode_progresses
+                .filter(dsl::episode_id.eq(episode_id))
+                .select(dsl::id)
+                .first(&mut conn)
+                .optional()?
+        };
+        if existing_progress_id.is_none() {
+            let new_progress = NewProgress {
+                episode_id,
+                completed: false,
+                listened_seconds: 0,
+                updated_at: Utc::now().naive_utc(),
+            };
+            insert_into(EpisodeProgress::table())
+                .values(new_progress)
                 .execute(&mut conn)?;
         }
     }
     let _ = app_handle.emit_all("sync-podcast-stop", podcast.id);
+    Ok(())
+}
+
+pub async fn store_backend_sync_response(
+    conn: &mut SqliteConnection,
+    sync_state_response: SyncStateResponse,
+) -> AppResult<()> {
+    for podcast in sync_state_response.podcasts {
+        if find_one_by_guid(&podcast.guid, conn).is_err() {
+            tracing::info!("Got new podcast from sync, downloading: {}", &podcast.url);
+            let saved_podcast = import_podcast_from_url(podcast.url.clone(), conn).await?;
+            if saved_podcast.guid != podcast.guid {
+                use crate::schema::podcasts::dsl::*;
+                update(podcasts)
+                    .set(guid.eq(&podcast.guid))
+                    .filter(id.eq(saved_podcast.id))
+                    .execute(conn)?;
+            }
+        }
+        let podcast_id = find_one_by_guid(&podcast.guid, conn)?.id;
+        {
+            use crate::schema::podcasts::dsl::*;
+            update(podcasts)
+                .set((feed_url.eq(podcast.url), updated_at.eq(podcast.updated_at)))
+                .filter(id.eq(podcast_id))
+                .execute(conn)?;
+        }
+        for episode_progress in &sync_state_response.episodes[&podcast.guid] {
+            use crate::schema::episode_progresses::dsl::*;
+            let given_episode_id: i32 = {
+                use crate::schema::episodes::dsl;
+                dsl::episodes
+                    .filter(dsl::podcast_id.eq(podcast_id).and(dsl::guid.eq(&episode_progress.guid)))
+                    .select(dsl::id)
+                    .get_result(conn)?
+            };
+            update(episode_progresses)
+                .set((
+                    listened_seconds.eq(episode_progress.listened_seconds),
+                    completed.eq(episode_progress.completed),
+                    updated_at.eq(episode_progress.updated_at),
+                ))
+                .filter(
+                    episode_id
+                        .eq(given_episode_id)
+                        .and(updated_at.lt(episode_progress.updated_at)),
+                )
+                .execute(conn)?;
+        }
+    }
     Ok(())
 }
 
@@ -304,20 +404,19 @@ pub struct ParsedEpisode {
 
 impl ParsedEpisode {
     pub fn from_item(item: Item) -> AppResult<Self> {
+        let itunes_ext = item.itunes_ext.unwrap_or(ITunesItemExtension::default());
         let description = if let Some(text) = item.description {
             text
-        } else if let Some(itunes) = item.itunes_ext {
-            itunes.summary.unwrap_or("".into())
         } else {
-            "".into()
+            itunes_ext.summary.unwrap_or_default()
         };
         let enclosure = item.enclosure.context("episode with no enclosure")?;
         let instance = Self {
             guid: item.guid.context("no guid for episode!")?.value,
-            content_url: enclosure.url.clone(),
+            content_url: enclosure.url,
             description,
-            image_url: "".into(),
-            length: enclosure.length.parse().unwrap_or(0), // TODO: parse from itunes extension
+            image_url: itunes_ext.image.unwrap_or_default(),
+            length: hms_to_seconds(itunes_ext.duration),
             link: item.link.context("episode with no link")?,
             title: item.title.context("episode with no title")?,
             episode_date: rfc822_to_naive_date_time(item.pub_date),
@@ -331,4 +430,15 @@ fn rfc822_to_naive_date_time(string: Option<String>) -> NaiveDateTime {
         .and_then(|pub_date_str| parse_from_rfc2822_with_fallback(pub_date_str).ok())
         .and_then(|timestamp| NaiveDateTime::from_timestamp_millis(timestamp.timestamp_millis()))
         .unwrap_or(NaiveDateTime::default())
+}
+
+fn hms_to_seconds(string: Option<String>) -> i32 {
+    let Some(string) = string else {
+        return 0
+    };
+    let values: Vec<i32> = string.split(':').filter_map(|v| v.parse().ok()).collect();
+    if values.len() != 3 {
+        return 0;
+    }
+    values[0] * 3600 + values[1] * 60 + values[2]
 }
