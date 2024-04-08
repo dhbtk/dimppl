@@ -41,12 +41,12 @@ pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, Conf
         app.send_invalidate_cache(EntityChange::AllPodcasts).unwrap();
         let podcasts = podcast::list_all(&mut connection).unwrap();
         for podcast in &podcasts {
-            let _ = app.emit_all("sync-podcast-stop", podcast.id);
+            let _ = app.emit("sync-podcast-stop", podcast.id);
             app.send_invalidate_cache(EntityChange::Podcast(podcast.id)).unwrap();
             app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
                 .unwrap();
         }
-        let _ = app.emit_all("sync-podcasts-done", ());
+        let _ = app.emit("sync-podcasts-done", ());
     });
 
     Ok(())
@@ -101,7 +101,7 @@ pub async fn set_access_key(value: String, config_wrapper: tauri::State<'_, Conf
 #[tauri::command]
 pub async fn register_device(device_name: String, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
     let mut config: Config = config_wrapper.0.lock().unwrap().clone();
-    config.device_name = device_name.clone();
+    config.device_name.clone_from(&device_name);
     let request = CreateDeviceRequest {
         user_access_key: config.user_access_key.clone(),
         device_name,
@@ -127,10 +127,10 @@ pub async fn import_podcast(url: String, app: AppHandle) -> AppResult<String> {
         let result = do_import_podcast(url, app.clone()).await;
         match result {
             Ok(_) => {
-                let _ = app.emit_all("import-podcast-done", import_id_clone.clone());
+                let _ = app.emit("import-podcast-done", import_id_clone.clone());
             }
             Err(e) => {
-                let _ = app.emit_all("import-podcast-error", (import_id_clone.clone(), e.to_string()));
+                let _ = app.emit("import-podcast-error", (import_id_clone.clone(), e.to_string()));
             }
         }
     });

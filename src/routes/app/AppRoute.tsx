@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from '@tanstack/react-router'
 import { Sidebar } from './Sidebar.tsx'
 import { PlayerControlsTopBar } from './PlayerControlsTopBar.tsx'
 import styled from 'styled-components'
-import { appRoute, router, settingsRoute } from '../../routeDefinitions.ts'
+import { settingsRoute } from '../../routeDefinitions.ts'
 
 const RootDiv = styled.div`
   flex: 1;

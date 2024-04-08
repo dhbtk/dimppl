@@ -17,7 +17,7 @@ const WrapperDiv = styled.div`
   gap: 4px;
 `
 
-const BigImage = styled.div<{url: string}>`
+const BigImage = styled.div<{ url: string }>`
   width: 150px;
   height: 150px;
   border-radius: 5px;
@@ -43,7 +43,7 @@ const Title = styled(Link)`
   font-size: 20px;
   display: block;
   cursor: default;
-  
+
   &:hover {
     text-decoration: underline;
     cursor: default;
@@ -54,7 +54,7 @@ const Subtitle = styled(Link)`
   color: #8E8E8E;
   display: block;
   cursor: default;
-  
+
   &:hover {
     text-decoration: underline;
     cursor: default;
@@ -92,8 +92,8 @@ export const LastPlayedCard: React.FC<{ lastPlayed: EpisodeWithPodcast }> = ({ l
           <PlayButton episode={episode}/>
         </BigImage>
         <DescriptionWrapper>
-          <Title to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }}>{episode.title}</Title>
-          <Subtitle to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }}>{podcast.name}</Subtitle>
+          <Title to={episodeRoute.to} params={{ episodeId: episode.id.toString() }}>{episode.title}</Title>
+          <Subtitle to={episodeRoute.to} params={{ episodeId: episode.id.toString() }}>{podcast.name}</Subtitle>
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
               {

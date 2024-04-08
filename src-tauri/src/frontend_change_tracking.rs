@@ -27,7 +27,7 @@ pub trait AppHandleExt {
 
 impl AppHandleExt for AppHandle {
     fn send_invalidate_cache(&self, key: impl Into<String>) -> AppResult<()> {
-        self.emit_all("invalidate-cache", key.into())?;
+        self.emit("invalidate-cache", key.into())?;
         Ok(())
     }
 }

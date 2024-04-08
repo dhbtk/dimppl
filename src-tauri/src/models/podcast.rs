@@ -5,14 +5,13 @@ use std::path::PathBuf;
 use crate::backend::models::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest, SyncStateResponse};
 use crate::database::db_connect;
 use anyhow::Context;
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::associations::HasTable;
 use diesel::prelude::*;
-use diesel::{insert_into, update, SqliteConnection};
+use diesel::{insert_into, update};
 use futures::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
-use rss::extension::itunes::ITunesItemExtension;
 use rss::{Channel, Item};
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
@@ -92,7 +91,7 @@ pub async fn sync_podcasts(conn: &mut SqliteConnection, app_handle: &AppHandle) 
 
 async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResult<()> {
     let mut conn = db_connect();
-    let _ = app_handle.emit_all("sync-podcast-start", podcast.id);
+    let _ = app_handle.emit("sync-podcast-start", podcast.id);
     tracing::debug!("Updating podcast: {}", podcast.name.as_str());
     let parsed_podcast = download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
     let updated_podcast = UpdatedPodcast::new(
@@ -143,7 +142,7 @@ async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResu
                 .execute(&mut conn)?;
         }
     }
-    let _ = app_handle.emit_all("sync-podcast-stop", podcast.id);
+    let _ = app_handle.emit("sync-podcast-stop", podcast.id);
     Ok(())
 }
 
@@ -404,7 +403,7 @@ pub struct ParsedEpisode {
 
 impl ParsedEpisode {
     pub fn from_item(item: Item) -> AppResult<Self> {
-        let itunes_ext = item.itunes_ext.unwrap_or(ITunesItemExtension::default());
+        let itunes_ext = item.itunes_ext.unwrap_or_default();
         let description = if let Some(text) = item.description {
             text
         } else {
@@ -428,14 +427,13 @@ impl ParsedEpisode {
 fn rfc822_to_naive_date_time(string: Option<String>) -> NaiveDateTime {
     string
         .and_then(|pub_date_str| parse_from_rfc2822_with_fallback(pub_date_str).ok())
-        .and_then(|timestamp| NaiveDateTime::from_timestamp_millis(timestamp.timestamp_millis()))
-        .unwrap_or(NaiveDateTime::default())
+        .and_then(|timestamp| DateTime::from_timestamp_millis(timestamp.timestamp_millis()))
+        .map(|ts| ts.naive_utc())
+        .unwrap_or_default()
 }
 
 fn hms_to_seconds(string: Option<String>) -> i32 {
-    let Some(string) = string else {
-        return 0
-    };
+    let Some(string) = string else { return 0 };
     let values: Vec<i32> = string.split(':').filter_map(|v| v.parse().ok()).collect();
     if values.len() != 3 {
         return 0;

@@ -24,7 +24,7 @@ const Header = styled.h1`
 `
 
 export const SettingsRoute: React.FC = () => {
-  const config = settingsRoute.useLoader()
+  const config = settingsRoute.useLoaderData()
   return (
     <RootDiv>
       <WrapperDiv>

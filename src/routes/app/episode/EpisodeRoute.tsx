@@ -17,7 +17,7 @@ const WrapperDiv = styled.div`
   gap: 4px;
 `
 
-const BigImage = styled.div<{url: string}>`
+const BigImage = styled.div<{ url: string }>`
   width: 200px;
   height: 200px;
   border-radius: 5px;
@@ -59,11 +59,11 @@ const InfoHeader = styled.div`
 `
 
 const InfoData = styled.div`
-  
+
 `
 
 export const EpisodeRoute: React.FC = () => {
-  const initialData = episodeRoute.useLoader()
+  const initialData = episodeRoute.useLoaderData()
   const query = useQuery({
     queryKey: [`episode-${initialData.episode.id}`],
     queryFn: () => podcastApi.getEpisodeFull(initialData.episode.id),

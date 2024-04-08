@@ -228,7 +228,7 @@ fn extract_episode_filename_extension(episode: &Episode, response: &Response) ->
         .get(CONTENT_TYPE)
         .and_then(|value| value.to_str().ok().to_maybe_string())
         .and_then(|value| mime2ext(&value).to_maybe_string());
-    let extension_possibilities = vec![response_extension, url_extension, mime_type_extension];
+    let extension_possibilities = [response_extension, url_extension, mime_type_extension];
     let fallback_extension = Some("mp3".to_string());
     extension_possibilities
         .iter()

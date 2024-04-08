@@ -62,7 +62,7 @@ impl EpisodeDownloads {
                 total_bytes: *total_bytes,
             });
         }
-        let _ = self.app_handle.emit_all("episode-downloads", report);
+        let _ = self.app_handle.emit("episode-downloads", report);
     }
 }
 

@@ -27,19 +27,6 @@ impl ResponseExt for reqwest::Response {
     }
 }
 
-pub trait StringExt {
-    fn truncate_up_to(&self, n: usize) -> Self;
-}
-
-impl StringExt for String {
-    fn truncate_up_to(&self, n: usize) -> Self {
-        let up_to = self.char_indices().map(|(i, _)| i).nth(n).unwrap_or(self.len());
-        let mut new_string = self.clone();
-        new_string.truncate(up_to);
-        new_string
-    }
-}
-
 pub trait StrOptionExt {
     fn to_maybe_string(&self) -> Option<String>;
 }

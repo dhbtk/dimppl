@@ -11,7 +11,7 @@ import { router } from './routeDefinitions.ts'
 import { listen } from '@tauri-apps/api/event'
 import { DownloadContextProvider } from './routes/DownloadContextProvider.tsx'
 import { PlayerContextProvider } from './routes/PlayerContextProvider.tsx'
-import { invoke } from '@tauri-apps/api'
+import { invoke } from '@tauri-apps/api/core'
 
 const queryClient = new QueryClient()
 

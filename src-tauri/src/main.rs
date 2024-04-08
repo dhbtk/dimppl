@@ -45,7 +45,6 @@ async fn main() {
     tracing::info!("db url: {db_url}");
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_window::init())
         .manage(ConfigWrapper::default())
         .register_uri_scheme_protocol("localimages", move |_app, request| {
             let mut conn = db_connect();

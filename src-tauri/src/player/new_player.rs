@@ -284,7 +284,7 @@ impl NewPlayer {
                 .unwrap();
             let _ = app_handle.send_invalidate_cache(EntityChange::EpisodeProgress(progress.id));
         }
-        let _ = app_handle.emit_all(
+        let _ = app_handle.emit(
             "player-status",
             PlayerStatus {
                 is_paused: paused,

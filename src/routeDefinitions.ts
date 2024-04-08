@@ -1,4 +1,4 @@
-import { RootRoute, Route, Router } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
 import { RootRouteComponent } from './routes/RootRouteComponent.tsx'
 import { OnboardingUserAccountRoute } from './routes/onboarding/OnboardingUserAccountRoute.tsx'
 import { OnboardingDeviceNameRoute } from './routes/onboarding/OnboardingDeviceNameRoute.tsx'
@@ -10,27 +10,27 @@ import { EpisodeRoute } from './routes/app/episode/EpisodeRoute.tsx'
 import { SettingsRoute } from './routes/app/settings/SettingsRoute.tsx'
 import { Config, configApi } from './backend/configApi.ts'
 
-export const rootRoute = new RootRoute({
+export const rootRoute = createRootRoute({
   component: RootRouteComponent
 })
 
-export const onboardingUserAccountRoute = new Route({
+export const onboardingUserAccountRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/onboarding/user_account',
   component: OnboardingUserAccountRoute
 })
-export const onboardingDeviceNameRoute = new Route({
+export const onboardingDeviceNameRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/onboarding/device_name',
   component: OnboardingDeviceNameRoute
 })
-export const appRoute = new Route({
+export const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
   component: AppRoute
 })
 
-export const appHomeRoute = new Route({
+export const appHomeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/',
   component: HomeRoute,
@@ -46,7 +46,7 @@ export const appHomeRoute = new Route({
   }
 })
 
-export const podcastRoute = new Route({
+export const podcastRoute = createRoute({
   getParentRoute: () => appRoute,
   path: 'podcast/$podcastId',
   component: PodcastRoute,
@@ -61,7 +61,7 @@ export const podcastRoute = new Route({
   }
 })
 
-export const episodeRoute = new Route({
+export const episodeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: 'episode/$episodeId',
   component: EpisodeRoute,
@@ -71,7 +71,7 @@ export const episodeRoute = new Route({
   }
 })
 
-export const settingsRoute = new Route({
+export const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: 'settings',
   component: SettingsRoute,
@@ -84,7 +84,7 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([settingsRoute, appHomeRoute, podcastRoute, episodeRoute])
 ])
 
-export const router = new Router({ routeTree })
+export const router = createRouter({ routeTree })
 
 declare module '@tanstack/react-router' {
   interface Register {
