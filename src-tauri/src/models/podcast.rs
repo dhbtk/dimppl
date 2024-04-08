@@ -3,12 +3,14 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::backend::models::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest};
+use crate::database::db_connect;
 use anyhow::Context;
 use chrono::{NaiveDateTime, Utc};
 use diesel::associations::HasTable;
 use diesel::prelude::*;
 use diesel::{insert_into, update, SqliteConnection};
 use futures::StreamExt;
+use futures_util::stream::FuturesUnordered;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
 use tauri::{AppHandle, Manager};
@@ -50,41 +52,48 @@ pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -
 }
 
 pub async fn sync_podcasts(conn: &mut SqliteConnection, app_handle: &AppHandle) -> AppResult<()> {
-    let podcasts = list_all(conn)?;
-    for podcast in &podcasts {
-        let _ = app_handle.emit_all("sync-podcast-start", podcast.id);
-        tracing::debug!("Updating podcast: {}", podcast.name.as_str());
-        let parsed_podcast = download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
-        let updated_podcast = UpdatedPodcast::new(
-            podcast.id,
-            NewPodcast::from_parsed(&parsed_podcast, podcast.feed_url.clone()),
-        );
-        diesel::update(Podcast::table().filter(crate::schema::podcasts::dsl::id.eq(podcast.id)))
-            .set(updated_podcast)
-            .execute(conn)?;
-        for episode in &parsed_podcast.episodes {
-            let result = {
-                use crate::schema::episodes::dsl::*;
-                Episode::belonging_to(podcast)
-                    .filter(guid.eq(episode.guid.clone()))
-                    .first::<Episode>(conn)
-            };
-            if let Ok(episode_record) = result {
-                use crate::schema::episodes::dsl::*;
-                update(episodes)
-                    .set(content_url.eq(episode.content_url.clone()))
-                    .filter(id.eq(episode_record.id))
-                    .execute(conn)?;
-            } else {
-                use crate::schema::episodes::dsl::*;
-                insert_into(episodes::table())
-                    .values(NewEpisode::from_parsed(episode, podcast.id))
-                    .execute(conn)?;
-            }
-        }
-        let _ = app_handle.emit_all("sync-podcast-stop", podcast.id);
-    }
+    let podcasts = list_all(conn)?
+        .into_iter()
+        .map(|podcast| tokio::spawn(sync_single_podcast(app_handle.clone(), podcast)))
+        .collect::<FuturesUnordered<_>>();
+    let _ = futures::future::join_all(podcasts).await;
 
+    Ok(())
+}
+
+async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResult<()> {
+    let mut conn = db_connect();
+    let _ = app_handle.emit_all("sync-podcast-start", podcast.id);
+    tracing::debug!("Updating podcast: {}", podcast.name.as_str());
+    let parsed_podcast = download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
+    let updated_podcast = UpdatedPodcast::new(
+        podcast.id,
+        NewPodcast::from_parsed(&parsed_podcast, podcast.feed_url.clone()),
+    );
+    diesel::update(Podcast::table().filter(crate::schema::podcasts::dsl::id.eq(podcast.id)))
+        .set(updated_podcast)
+        .execute(&mut conn)?;
+    for episode in &parsed_podcast.episodes {
+        let result = {
+            use crate::schema::episodes::dsl::*;
+            Episode::belonging_to(&podcast)
+                .filter(guid.eq(episode.guid.clone()))
+                .first::<Episode>(&mut conn)
+        };
+        if let Ok(episode_record) = result {
+            use crate::schema::episodes::dsl::*;
+            update(episodes)
+                .set(content_url.eq(episode.content_url.clone()))
+                .filter(id.eq(episode_record.id))
+                .execute(&mut conn)?;
+        } else {
+            use crate::schema::episodes::dsl::*;
+            insert_into(episodes::table())
+                .values(NewEpisode::from_parsed(episode, podcast.id))
+                .execute(&mut conn)?;
+        }
+    }
+    let _ = app_handle.emit_all("sync-podcast-stop", podcast.id);
     Ok(())
 }
 
