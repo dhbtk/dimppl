@@ -18,6 +18,13 @@ html {
   --contexify-activeRightSlot-color: #fff;
   --contexify-arrow-color: #444444;
   --contexify-activeArrow-color: #fff;
+
+  /* CSS HEX */
+  --peach: #FFC285ff;
+  --murrey: #89023Eff;
+  --old-rose: #CC7178ff;
+  --lavender-web: #C6D2EDff;
+  --drab-dark-brown: #363020ff;
 }
 
 input, textarea, select, button, img {
@@ -29,7 +36,7 @@ body {
   padding: 0;
   font-size: 13px;
   font-family: -apple-system;
-  color: #444444;
+  color: var(--drab-dark-brown);
   position: fixed;
   overflow: hidden;
   width: 100vw;
