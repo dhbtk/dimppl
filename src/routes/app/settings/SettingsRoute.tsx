@@ -1,7 +1,8 @@
 import React from 'react'
 import styled from 'styled-components'
 import { BackButton } from '../podcast/BackButton.tsx'
-import { settingsRoute } from '../../../routeDefinitions.ts'
+import { onboardingUserAccountRoute, settingsRoute } from '../../../routeDefinitions.ts'
+import { Link } from '@tanstack/react-router'
 
 const RootDiv = styled.div`
   flex: 1;
@@ -31,6 +32,7 @@ export const SettingsRoute: React.FC = () => {
         <BackButton/>
         <Header>Configurações</Header>
         <pre>{JSON.stringify(config, null, 2)}</pre>
+        <Link to={onboardingUserAccountRoute.to}>onboardingUserAccountRoute</Link>
       </WrapperDiv>
     </RootDiv>
   )

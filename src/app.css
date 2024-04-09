@@ -25,6 +25,9 @@ html {
   --old-rose: #CC7178ff;
   --lavender-web: #C6D2EDff;
   --drab-dark-brown: #363020ff;
+
+  --primary-lightest: #FFF9F3;
+  --primary-grayish: #cec7c1;
 }
 
 input, textarea, select, button, img {

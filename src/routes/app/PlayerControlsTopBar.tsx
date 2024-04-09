@@ -13,7 +13,7 @@ const TopBar = styled.div`
   flex-direction: row;
   align-items: center;
   padding: 0 8px;
-  border-bottom: 1px solid #ECECEC;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
   flex-shrink: 0;
 `
 
@@ -29,7 +29,7 @@ const DisplayIsland = styled.div`
   height: 40px;
   width: 50%;
   flex-shrink: 0;
-  border: 1px solid #ECECEC;
+  border: 1px solid rgba(0, 0, 0, 0.07);
   border-radius: 4px;
   display: flex;
 `
@@ -56,7 +56,7 @@ const TextBox = styled.div`
   flex: 1;
   padding-top: 3px;
   position: relative;
-  
+
   & p {
     margin: 0 5px;
     line-height: 1.35;
@@ -64,12 +64,12 @@ const TextBox = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
+
   & p.left {
     position: absolute;
     left: -3px;
     bottom: 0;
-    color: #808080;
+    color: rgba(0, 0, 0, 0.5);
     font-size: 9px;
   }
 
@@ -77,7 +77,7 @@ const TextBox = styled.div`
     position: absolute;
     right: -3px;
     bottom: 0;
-    color: #808080;
+    color: rgba(0, 0, 0, 0.5);
     font-size: 9px;
   }
 `
@@ -85,13 +85,13 @@ const TextBox = styled.div`
 const ProgressBarContainer = styled.div`
   height: 3px;
   flex-shrink: 0;
-  background-color: #E0E0E0;
+  background-color: rgba(0, 0, 0, 0.12);
 `
 
 const ProgressBar = styled.div<{ percent: string }>`
   height: 3px;
   width: ${props => props.percent};
-  background-color: #808080;
+  background-color: rgba(0, 0, 0, 0.5);
 `
 
 export const PlayerControlsTopBar: React.FC = () => {
@@ -99,17 +99,22 @@ export const PlayerControlsTopBar: React.FC = () => {
   return (
     <TopBar data-tauri-drag-region={true}>
       <ContentAligner data-tauri-drag-region={true}>
-        <ToolbarIconButton icon="fast_rewind" disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction('skip_backwards')}/>
-        <ToolbarIconButton icon={playerStatus.isPaused ? 'play_arrow' : 'pause'} disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction(playerStatus.isPaused ? 'play' : 'pause')}/>
-        <ToolbarIconButton icon="fast_forward" disabled={playerStatus.episode === undefined} onClick={() => podcastApi.playerAction('skip_forwards')}/>
+        <ToolbarIconButton icon="fast_rewind" disabled={playerStatus.episode === undefined}
+                           onClick={() => podcastApi.playerAction('skip_backwards')}/>
+        <ToolbarIconButton icon={playerStatus.isPaused ? 'play_arrow' : 'pause'}
+                           disabled={playerStatus.episode === undefined}
+                           onClick={() => podcastApi.playerAction(playerStatus.isPaused ? 'play' : 'pause')}/>
+        <ToolbarIconButton icon="fast_forward" disabled={playerStatus.episode === undefined}
+                           onClick={() => podcastApi.playerAction('skip_forwards')}/>
       </ContentAligner>
       {(playerStatus.episode === null || playerStatus.episode === undefined) ? <DisplayIsland/> : (
         <DisplayIsland>
           <ImageBox url={playerStatus.episode.imageUrl || podcastUtil.imageUrl(playerStatus.podcast!)}/>
           <RightSide>
             <TextBox>
-              <p title={playerStatus.episode.title}>{playerStatus.loading ? 'Carregando...' : playerStatus.episode.title}</p>
-              <p style={{ color: '#808080' }}>
+              <p
+                title={playerStatus.episode.title}>{playerStatus.loading ? 'Carregando...' : playerStatus.episode.title}</p>
+              <p style={{ color: 'rgba(0, 0, 0, 0.5)' }}>
                 {playerStatus.podcast?.name}
                 {' — '}
                 {episodeDate(playerStatus.episode.episodeDate)}

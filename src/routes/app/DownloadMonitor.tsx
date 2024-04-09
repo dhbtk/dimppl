@@ -15,10 +15,10 @@ export const DownloadMonitor: React.FC = () => {
               width: ratio(status.downloadedBytes, status.totalBytes),
               height: 20,
               borderRadius: 4,
-              backgroundColor: '#6E9BF9',
+              backgroundColor: 'var(--murray)',
               marginTop: 5,
               marginBottom: 10
-          }}/>
+            }}/>
         </div>
       ))}
     </div>

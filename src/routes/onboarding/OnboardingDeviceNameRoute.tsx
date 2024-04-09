@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { configApi } from '../../backend/configApi.ts'
-import { Button, Input, Typography } from 'antd'
 import { useNavigate } from '@tanstack/react-router'
+import { RootDiv } from '../../components/RootDiv.tsx'
+import { WindowTitlebar } from 'tauri-controls'
+import { AccessKeyGroup, Title, WrapperDiv } from './components.ts'
+import { PrettyButton } from '../../components/PrettyButton.tsx'
 
 export const OnboardingDeviceNameRoute: React.FC = () => {
   const [deviceName, setDeviceName] = useState('')
@@ -24,29 +27,34 @@ export const OnboardingDeviceNameRoute: React.FC = () => {
     }
   }
   return (
-    <div style={{ padding: '0 15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <Typography.Title>Boas-vindas!</Typography.Title>
-      <Typography.Text>
-        Defina um nome para este dispositivo:
-      </Typography.Text>
-      <Input
-        value={deviceName}
-        onChange={(e) => setDeviceName(e.target.value)}
-        style={{ maxWidth: '80%' }}
-      />
-      <div style={{
-        display: 'flex',
-        paddingTop: '15px'
-      }}>
-        <Button
-          type="primary"
-          style={{ marginLeft: 'auto' }}
-          disabled={loading}
-          onClick={submit}
-        >
-          Avançar
-        </Button>
-      </div>
-    </div>
+    <RootDiv style={{ height: '100vh' }}>
+      <WindowTitlebar/>
+      <WrapperDiv>
+        <Title>Boas-vindas!</Title>
+        <AccessKeyGroup>
+          <label htmlFor="device_name">
+            Defina um nome para este dispositivo:
+          </label>
+          <input
+            value={deviceName}
+            onChange={(e) => setDeviceName(e.target.value)}
+            style={{ maxWidth: '80%' }}
+          />
+        </AccessKeyGroup>
+        <div style={{
+          display: 'flex',
+          paddingTop: '15px'
+        }}>
+          <PrettyButton
+            type="button"
+            style={{ marginLeft: 'auto' }}
+            disabled={loading}
+            onClick={submit}
+          >
+            Avançar
+          </PrettyButton>
+        </div>
+      </WrapperDiv>
+    </RootDiv>
   )
 }

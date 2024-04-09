@@ -23,7 +23,7 @@ const SidebarLink = styled(Link)`
   min-height: 33px;
 
   &.active {
-    background-color: #6E9BF9;
+    background-color: var(--murrey);
     color: #FFF;
   }
 
@@ -88,9 +88,9 @@ export const Sidebar: React.FC = () => {
       left: 0,
       top: 0,
       bottom: 0,
-      background: 'transparent',
+      background: 'var(--primary-grayish)',
       // background: '#E2E2E2', // #84C5E6
-      borderRight: '1px solid #D9D9D9',
+      borderRight: '1px solid rgba(0, 0, 0, 0.15)',
       flexShrink: 0,
       display: 'flex',
       flexDirection: 'column'
