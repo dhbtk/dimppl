@@ -26,6 +26,7 @@ mod errors;
 mod extensions;
 mod frontend_change_tracking;
 mod models;
+mod native_context_menus;
 mod player;
 mod schema;
 
@@ -90,7 +91,8 @@ async fn main() {
             commands::find_progress_for_episode,
             commands::set_volume,
             commands::seek,
-            commands::set_up_media_controls
+            commands::set_up_media_controls,
+            commands::show_context_menu
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

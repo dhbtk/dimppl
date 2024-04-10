@@ -9,6 +9,7 @@ import { episodeDate, formatHumane, ratio } from '../../../timeUtil.ts'
 import { PlayButton } from './PlayButton.tsx'
 import { DownloadEpisodeButton } from './DownloadEpisodeButton.tsx'
 import { episodeRoute } from '../../../routeDefinitions.ts'
+import { contextMenu } from '../../../backend/contextMenu.ts'
 
 const EpisodeWrapper = styled.div`
   margin: 8px;
@@ -93,19 +94,28 @@ const ProgressBar = styled.div<{ percent: string }>`
   background-color: #808080;
 `
 
-export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, progress: EpisodeProgress, style?: React.CSSProperties }> = ({ episode: initialEpisode, podcast, progress, style }) => {
+export const EpisodeListItem: React.FC<{
+  episode: Episode,
+  podcast: Podcast,
+  progress: EpisodeProgress,
+  style?: React.CSSProperties
+}> = ({ episode: initialEpisode, podcast, progress, style }) => {
   const query = useQuery({
     queryKey: [`episode-${initialEpisode.id}`],
     queryFn: () => podcastApi.getEpisodeFull(initialEpisode.id),
     initialData: { episode: initialEpisode, podcast, progress } as EpisodeWithPodcast
   })
   const { episode } = query.data
-  const myStyles = {...style, width: 'calc(100% - 8px)' }
+  const myStyles = { ...style, width: 'calc(100% - 8px)' }
   return (
-    <EpisodeWrapper key={episode.id} style={myStyles}>
+    <EpisodeWrapper key={episode.id} style={myStyles} onContextMenu={(e) => {
+      contextMenu.podcastEpisode(episode.id)
+      e.preventDefault()
+    }}>
       <EpisodeImageBox url={episode.imageUrl || podcastUtil.imageUrl(podcast)}/>
       <EpisodeInfoBox>
-        <EpisodeLink to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }} title={episode.title}>
+        <EpisodeLink to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }}
+                     title={episode.title}>
           {episode.title}
         </EpisodeLink>
         <div style={{ display: 'flex', height: 120 }}>
@@ -120,7 +130,7 @@ export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, pro
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <ProgressDisplay episode={episode} progress={progress} />
+              <ProgressDisplay episode={episode} progress={progress}/>
               <IconButton icon="more_vert"/>
             </div>
           </EpisodeControls>
@@ -130,7 +140,10 @@ export const EpisodeListItem: React.FC<{ episode: Episode, podcast: Podcast, pro
   )
 }
 
-const ProgressDisplay: React.FC<{ episode: Episode, progress: EpisodeProgress }> = ({ episode, progress: initialProgress }) => {
+const ProgressDisplay: React.FC<{ episode: Episode, progress: EpisodeProgress }> = ({
+  episode,
+  progress: initialProgress
+}) => {
   const query = useQuery({
     queryKey: [`episodeProgress-${initialProgress.id}`],
     queryFn: () => podcastApi.getProgressForEpisode(episode.id),

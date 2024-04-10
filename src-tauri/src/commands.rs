@@ -10,10 +10,11 @@ use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response};
 use crate::models::{episode, podcast, EpisodeProgress};
 use crate::models::{Episode, Podcast};
+use crate::native_context_menus::ContextMenuOption;
 use crate::player::Player;
 use std::ops::Deref;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Window};
 use uuid::Uuid;
 
 #[tauri::command]
@@ -244,5 +245,12 @@ pub async fn set_up_media_controls(app: AppHandle, player: tauri::State<'_, Arc<
         tracing::debug!("setting up media controls");
         player.set_up_media_controls(handle);
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn show_context_menu(app: AppHandle, window: Window, menu_option: ContextMenuOption) -> AppResult<()> {
+    let menu = menu_option.show_context_menu(app)?;
+    window.popup_menu(&menu)?;
     Ok(())
 }

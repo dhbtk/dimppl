@@ -32,3 +32,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </React.StrictMode>,
 )
+
+document.addEventListener('contextmenu', ev => {
+  console.log(ev.target)
+  // ev.preventDefault()
+})
