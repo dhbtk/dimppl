@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Outlet, useNavigate } from '@tanstack/react-router'
-import { Sidebar } from './Sidebar.tsx'
-import { PlayerControlsTopBar } from './PlayerControlsTopBar.tsx'
+import { Sidebar } from './sidebar/Sidebar.tsx'
+import { PlayerControlsTopBar } from './controls/PlayerControlsTopBar.tsx'
 import { settingsRoute } from '../../routeDefinitions.ts'
 import { RootDiv } from '../../components/RootDiv.tsx'
 

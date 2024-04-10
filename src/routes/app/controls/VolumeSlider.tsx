@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { Icon } from './Icon.tsx'
-import { configApi } from '../../backend/configApi.ts'
+import { Icon } from '../Icon.tsx'
+import { configApi } from '../../../backend/configApi.ts'
 
 const Container = styled.div`
   display: flex;

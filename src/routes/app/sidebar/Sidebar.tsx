@@ -1,15 +1,41 @@
 import React, { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Podcast, podcastApi } from '../../backend/podcastApi.ts'
+import { Podcast, podcastApi } from '../../../backend/podcastApi.ts'
 import { ImportPodcastButton } from './ImportPodcastButton.tsx'
 import { Link } from '@tanstack/react-router'
-import { appHomeRoute, podcastRoute } from '../../routeDefinitions.ts'
+import { appHomeRoute, podcastRoute } from '../../../routeDefinitions.ts'
 import styled, { keyframes } from 'styled-components'
 import { WindowControls } from 'tauri-controls'
-import { podcastUtil } from '../../backend/podcastUtil.ts'
+import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { DownloadMonitor } from './DownloadMonitor.tsx'
 import { SyncPodcastsButton } from './SyncPodcastsButton.tsx'
 import { listen } from '@tauri-apps/api/event'
+
+const SidebarWrapper = styled.div`
+  overflow: auto;
+  height: 100vh;
+  width: 230px;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--primary-grayish);
+  border-right: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+`
+
+const SidebarToolbar = styled.div`
+  height: 48px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 8px 0 0;
+  margin-bottom: 4px;
+  gap: 4px;
+  flex-shrink: 0;
+`
 
 const SidebarLink = styled(Link)`
   display: flex;
@@ -17,9 +43,10 @@ const SidebarLink = styled(Link)`
   cursor: default;
   text-decoration: none;
   color: inherit;
-  padding: 4px;
+  padding: 4px 12px;
   gap: 8px;
-  border-radius: 4px;
+  border-radius: 0;
+  margin: 0 -8px;
   min-height: 33px;
 
   &.active {
@@ -32,6 +59,23 @@ const SidebarLink = styled(Link)`
     white-space: nowrap;
     overflow: hidden;
   }
+
+  & > span.material-icons-outlined {
+    display: flex;
+    width: 25px;
+    height: 25px;
+    align-items: center;
+    justify-content: center;
+  }
+`
+
+const PodcastImageDiv = styled.div`
+  display: block;
+  width: 25px;
+  height: 25px;
+  background-size: cover;
+  position: relative;
+  flex-shrink: 0;
 `
 
 const rotate = keyframes`
@@ -81,40 +125,15 @@ export const Sidebar: React.FC = () => {
 
   // @ts-ignore
   return (
-    <div style={{
-      overflow: 'auto',
-      height: '100vh',
-      width: '230px',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      background: 'var(--primary-grayish)',
-      // background: '#E2E2E2', // #84C5E6
-      borderRight: '1px solid rgba(0, 0, 0, 0.15)',
-      flexShrink: 0,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <div
+    <SidebarWrapper>
+      <SidebarToolbar
         data-tauri-drag-region={true}
-        style={{
-          height: 48,
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'flex-start',
-          padding: '0 8px',
-          paddingLeft: 0,
-          marginBottom: 4,
-          gap: 4,
-          flexShrink: 0
-        }}
       >
         <WindowControls platform="macos" style={{ marginRight: 'auto' }}/>
         <div style={{ flex: 1 }}/>
         <ImportPodcastButton/>
         <SyncPodcastsButton/>
-      </div>
+      </SidebarToolbar>
       <div style={{ padding: 8, flex: 1 }}>
         <SidebarLink to={appHomeRoute.to} params={{}} search={{}} className="sidebar-link">
           <span className="material-icons-outlined">home</span>
@@ -124,26 +143,20 @@ export const Sidebar: React.FC = () => {
           // @ts-ignore
           <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }}
                        className="sidebar-link">
-            <div style={{
-              display: 'block',
-              width: 25,
-              height: 25,
+            <PodcastImageDiv style={{
               backgroundImage: `url(${podcastUtil.imageUrl(podcast)})`,
-              backgroundSize: 'cover',
-              position: 'relative',
-              flexShrink: 0
             }}>
               {syncingPodcasts[podcast.id.toString()] && (
                 <SpinningLoader>
                   <span className="material-icons-outlined">refresh</span>
                 </SpinningLoader>
               )}
-            </div>
+            </PodcastImageDiv>
             <span title={podcast.name}>{podcast.name}</span>
           </SidebarLink>
         ))}
       </div>
       <DownloadMonitor/>
-    </div>
+    </SidebarWrapper>
   )
 }

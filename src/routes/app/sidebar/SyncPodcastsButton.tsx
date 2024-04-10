@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { ToolbarButton } from './ToolbarButton.tsx'
+import { ToolbarButton } from '../ToolbarButton.tsx'
 import styled, { css, keyframes } from 'styled-components'
-import { podcastApi } from '../../backend/podcastApi.ts'
+import { podcastApi } from '../../../backend/podcastApi.ts'
 import { listen } from '@tauri-apps/api/event'
 
 const rotate = keyframes`
@@ -15,7 +15,6 @@ const SpinningButton = styled(ToolbarButton)`
     ${props => props.disabled ? css`animation: ${rotate} 1s linear infinite;` : ''}
   }
 `
-
 
 export const SyncPodcastsButton: React.FC = () => {
   const [loading, setLoading] = useState(false)

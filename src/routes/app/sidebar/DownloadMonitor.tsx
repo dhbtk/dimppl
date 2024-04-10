@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { DownloadContext } from '../DownloadContextProvider.tsx'
+import { DownloadContext } from '../../DownloadContextProvider.tsx'
 
 export const DownloadMonitor: React.FC = () => {
   const status = useContext(DownloadContext)

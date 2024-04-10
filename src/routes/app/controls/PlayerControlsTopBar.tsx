@@ -1,11 +1,11 @@
 import React, { useContext } from 'react'
 import styled from 'styled-components'
-import { PlayerContext } from '../PlayerContextProvider.tsx'
+import { PlayerContext } from '../../PlayerContextProvider.tsx'
 import { ToolbarIconButton } from './ToolbarIconButton.tsx'
-import { podcastApi } from '../../backend/podcastApi.ts'
-import { podcastUtil } from '../../backend/podcastUtil.ts'
+import { podcastApi } from '../../../backend/podcastApi.ts'
+import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { VolumeSlider } from './VolumeSlider.tsx'
-import { episodeDate, formatHms, ratio } from '../../timeUtil.ts'
+import { episodeDate, formatHms, ratio } from '../../../timeUtil.ts'
 
 const TopBar = styled.div`
   height: 48px;
