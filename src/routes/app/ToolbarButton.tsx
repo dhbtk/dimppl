@@ -13,8 +13,8 @@ export const ToolbarButton = styled.button`
   &[disabled] {
     color: #b4b4b4;
   }
-  
+
   &:hover {
-    background-color: rgba(0, 0, 0, .05);
+    background-color: var(--gray05);
   }
-`;
+`

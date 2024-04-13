@@ -27,7 +27,7 @@ const VolumeSliderInput = styled.input<{ width: string }>`
   height: 3px;
   border-radius: 2px;
   background-size: ${props => props.width} 100%;
-  background: rgba(0, 0, 0, 0.05) linear-gradient(rgba(0, 0, 0, 0.26), rgba(0, 0, 0, 0.26)) no-repeat;
+  background: var(--gray05) linear-gradient(var(--gray25), var(--gray25)) no-repeat;
   width: 100%;
 
   &::-webkit-slider-thumb {
@@ -36,7 +36,7 @@ const VolumeSliderInput = styled.input<{ width: string }>`
     width: 13px;
     border-radius: 50%;
     background: var(--primary-lightest);
-    border: 1px solid rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--gray25);
   }
 
   &::-webkit-slider-runnable-track {

@@ -10,21 +10,24 @@ const StyledButton = styled.button`
   height: 36px;
   width: 36px;
   cursor: default;
-  
+
   &[disabled] {
     color: #b4b4b4;
   }
 
   &:hover {
-    background-color: rgba(0, 0, 0, .05);
+    background-color: var(--gray05);
   }
-  
+
   & span.material-icons-outlined {
     font-size: 24px;
   }
 `
 
-export const IconButton: React.FC<{ icon: string } & Partial<ButtonHTMLAttributes<HTMLButtonElement>>> = ({ icon, ...props }) => {
+export const IconButton: React.FC<{ icon: string } & Partial<ButtonHTMLAttributes<HTMLButtonElement>>> = ({
+  icon,
+  ...props
+}) => {
   return (
     <StyledButton type="button" {...props}>
       <span className="material-icons-outlined">{icon}</span>

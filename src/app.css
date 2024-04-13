@@ -28,6 +28,32 @@ html {
 
   --primary-lightest: #FFF9F3;
   --primary-grayish: #cec7c1;
+  --primary-grayish-dark: #cec7c116;
+
+}
+
+/* grays */
+
+:root {
+  --gray05: rgba(0, 0, 0, 0.05);
+  --gray07: rgba(0, 0, 0, 0.07);
+  --gray10: rgba(0, 0, 0, 0.1);
+  --gray12: rgba(0, 0, 0, 0.12);
+  --gray15: rgba(0, 0, 0, 0.15);
+  --gray25: rgba(0, 0, 0, 0.25);
+  --gray50: rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gray05: rgba(255, 255, 255, 0.05);
+    --gray07: rgba(255, 255, 255, 0.07);
+    --gray10: rgba(255, 255, 255, 0.1);
+    --gray12: rgba(255, 255, 255, 0.12);
+    --gray15: rgba(255, 255, 255, 0.15);
+    --gray25: rgba(255, 255, 255, 0.25);
+    --gray50: rgba(255, 255, 255, 0.5);
+  }
 }
 
 input, textarea, select, button, img {
@@ -61,4 +87,8 @@ body {
   'wght' 200,
   'GRAD' 0,
   'opsz' 24;
+}
+
+hr {
+  border-color: var(--gray05);
 }

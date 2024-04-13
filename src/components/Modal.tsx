@@ -10,16 +10,16 @@ const StyledModal = styled.dialog`
   padding: 16px;
   border-radius: 9px;
   background-color: #F2F2F2;
-  box-shadow: 8px 8px 16px 8px rgba(0,0,0,0.1);
+  box-shadow: 8px 8px 16px 8px var(--gray10);
   width: 40%;
 `
 
 export const Modal: React.FC<PropsWithChildren<ModalProps>> = ({ children, isOpen, onClose }) => {
   const [isModalOpen, setModalOpen] = useState(isOpen)
-  const modalRef = useRef<HTMLDialogElement | null>(null);
+  const modalRef = useRef<HTMLDialogElement | null>(null)
 
   useEffect(() => {
-    setModalOpen(isOpen);
+    setModalOpen(isOpen)
   }, [isOpen])
   useEffect(() => {
     const modalElement = modalRef.current
@@ -33,7 +33,7 @@ export const Modal: React.FC<PropsWithChildren<ModalProps>> = ({ children, isOpe
   }, [isModalOpen])
   const handleCloseModal = () => {
     if (onClose) {
-      onClose();
+      onClose()
     }
     setModalOpen(false)
   }

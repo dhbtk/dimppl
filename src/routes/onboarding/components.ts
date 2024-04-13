@@ -32,6 +32,6 @@ export const AccessKeyGroup = styled.div`
   & > input {
     padding: 3px;
     border-radius: 3px;
-    border: 1px solid rgba(0, 0, 0, .05)
+    border: 1px solid var(--gray05);
   }
 `

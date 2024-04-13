@@ -19,10 +19,13 @@ const SidebarWrapper = styled.div`
   top: 0;
   bottom: 0;
   background: var(--primary-grayish);
-  border-right: 1px solid rgba(0, 0, 0, 0.15);
+  border-right: 1px solid var(--gray15);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  @media (prefers-color-scheme: dark) {
+    background: var(--primary-grayish-dark);
+  }
 `
 
 const SidebarToolbar = styled.div`

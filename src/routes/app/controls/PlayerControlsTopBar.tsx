@@ -13,7 +13,7 @@ const TopBar = styled.div`
   flex-direction: row;
   align-items: center;
   padding: 0 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  border-bottom: 1px solid var(--gray07);
   flex-shrink: 0;
 `
 
@@ -29,7 +29,7 @@ const DisplayIsland = styled.div`
   height: 40px;
   width: 50%;
   flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.07);
+  border: 1px solid var(--gray07);
   border-radius: 4px;
   display: flex;
 `
@@ -69,7 +69,7 @@ const TextBox = styled.div`
     position: absolute;
     left: -3px;
     bottom: 0;
-    color: rgba(0, 0, 0, 0.5);
+    color: var(--gray50);
     font-size: 9px;
   }
 
@@ -77,7 +77,7 @@ const TextBox = styled.div`
     position: absolute;
     right: -3px;
     bottom: 0;
-    color: rgba(0, 0, 0, 0.5);
+    color: var(--gray50);
     font-size: 9px;
   }
 `
@@ -85,13 +85,13 @@ const TextBox = styled.div`
 const ProgressBarContainer = styled.div`
   height: 3px;
   flex-shrink: 0;
-  background-color: rgba(0, 0, 0, 0.12);
+  background-color: var(--gray12);
 `
 
 const ProgressBar = styled.div<{ percent: string }>`
   height: 3px;
   width: ${props => props.percent};
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--gray05);
 `
 
 export const PlayerControlsTopBar: React.FC = () => {
@@ -114,7 +114,7 @@ export const PlayerControlsTopBar: React.FC = () => {
             <TextBox>
               <p
                 title={playerStatus.episode.title}>{playerStatus.loading ? 'Carregando...' : playerStatus.episode.title}</p>
-              <p style={{ color: 'rgba(0, 0, 0, 0.5)' }}>
+              <p style={{ color: 'var(--gray50)' }}>
                 {playerStatus.podcast?.name}
                 {' — '}
                 {episodeDate(playerStatus.episode.episodeDate)}

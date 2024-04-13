@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tauri::menu::{Menu, MenuBuilder};
+use tauri::menu::{Menu, MenuBuilder, MenuEvent};
 use tauri::{AppHandle, Wry};
 
 use crate::errors::AppResult;
@@ -19,4 +19,8 @@ impl ContextMenuOption {
         };
         Ok(menu)
     }
+}
+
+pub fn menu_event_handler(_app_handle: &AppHandle, event: MenuEvent) {
+    tracing::info!("menu item click: {}", event.id.0);
 }

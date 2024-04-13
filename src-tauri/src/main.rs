@@ -10,11 +10,14 @@ use tauri::http::Response;
 use crate::config::ConfigWrapper;
 use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
+use crate::menus::menu_event_handler;
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
 use crate::player::Player;
 use tauri::Manager;
 use tracing::Level;
+use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::EnvFilter;
 
 mod backend;
 mod commands;
@@ -25,8 +28,8 @@ mod environment;
 mod errors;
 mod extensions;
 mod frontend_change_tracking;
+mod menus;
 mod models;
-mod native_context_menus;
 mod player;
 mod schema;
 
@@ -35,6 +38,11 @@ mod schema;
 async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .parse_lossy("info,app=debug"),
+        )
         .with_target(false)
         .pretty()
         .init();
@@ -68,6 +76,11 @@ async fn main() {
             player.set_volume(config.volume);
             player.set_playback_speed(config.playback_speed);
             app.manage(player);
+            app.on_menu_event(menu_event_handler);
+            #[cfg(debug_assertions)]
+            {
+                app.get_webview("main").unwrap().open_devtools();
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
