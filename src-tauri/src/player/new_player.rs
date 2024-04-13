@@ -1,3 +1,4 @@
+use std::f32::consts::E;
 use std::ffi::c_void;
 use std::fs::File;
 use std::ops::Deref;
@@ -223,7 +224,7 @@ impl NewPlayer {
     }
 
     pub fn set_volume(&self, volume: f32) {
-        *self.volume.write().unwrap() = volume;
+        *self.volume.write().unwrap() = (volume.exp() - 1.0) / (E - 1.0);
     }
 
     pub fn set_playback_speed(&self, speed: f32) {
