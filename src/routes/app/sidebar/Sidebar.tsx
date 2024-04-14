@@ -103,6 +103,12 @@ const SpinningLoader = styled.div`
   }
 `
 
+const Divider = styled.hr`
+  margin-top: 6px;
+  margin-bottom: 2px;
+  border-color: var(--gray25);
+`
+
 const podcastsCurrentlySyncing: Record<string, boolean> = {}
 
 export const Sidebar: React.FC = () => {
@@ -137,11 +143,12 @@ export const Sidebar: React.FC = () => {
         <ImportPodcastButton/>
         <SyncPodcastsButton/>
       </SidebarToolbar>
-      <div style={{ padding: 8, flex: 1 }}>
+      <div style={{ padding: 8, flex: 1, overflowY: 'auto' }}>
         <SidebarLink to={appHomeRoute.to} params={{}} search={{}} className="sidebar-link">
           <span className="material-icons-outlined">home</span>
           Home
         </SidebarLink>
+        <Divider/>
         {queryItems.map(podcast => (
           // @ts-ignore
           <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }}

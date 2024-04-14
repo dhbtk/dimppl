@@ -27,6 +27,7 @@ pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
 #[tauri::command]
 pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
     let config = config_wrapper.0.lock().unwrap().clone();
+    let _ = app.emit("sync-podcasts-start", ());
     tokio::spawn(async move {
         let mut connection = db_connect();
 

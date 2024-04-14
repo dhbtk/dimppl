@@ -7,6 +7,7 @@ use crate::database::db_connect;
 use crate::errors::AppResult;
 use crate::models::episode;
 use crate::models::episode_downloads::EpisodeDownloads;
+use crate::navigation::{AppRoute, NavigationExt};
 use crate::player::Player;
 
 #[derive(Serialize, Deserialize, Eq, PartialEq)]
@@ -148,7 +149,9 @@ fn menu_event_handler_inner(app_handle: &AppHandle, event: MenuEvent) -> AppResu
         ContextMenuOption::ShowFileInFolder { id } => {
             commands::show_episode_file_in_folder(id)?;
         }
-        ContextMenuOption::GoToEpisode { .. } => {}
+        ContextMenuOption::GoToEpisode { id } => {
+            app_handle.navigate(AppRoute::Episode { id })?;
+        }
         ContextMenuOption::GoToPodcast { .. } => {}
         ContextMenuOption::Separator => {}
     }

@@ -131,7 +131,7 @@ export const EpisodeListItem: React.FC<{
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <ProgressDisplay episode={episode} progress={progress}/>
-              <IconButton icon="more_vert"/>
+              <IconButton icon="more_vert" onClick={() => contextMenu.podcastEpisode(episode.id)}/>
             </div>
           </EpisodeControls>
         </div>

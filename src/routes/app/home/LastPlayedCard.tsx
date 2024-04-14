@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import { formatHumane } from '../../../timeUtil.ts'
 import { IconButton } from '../IconButton.tsx'
 import { episodeRoute } from '../../../routeDefinitions.ts'
+import { contextMenu } from '../../../backend/contextMenu.ts'
 
 const WrapperDiv = styled.div`
   padding: 4px 12px 0;
@@ -85,7 +86,7 @@ export const LastPlayedCard: React.FC<{ lastPlayed: EpisodeWithPodcast }> = ({ l
   })
   const { episode, progress, podcast } = query.data
   return (
-    <WrapperDiv>
+    <WrapperDiv onContextMenu={() => contextMenu.podcastEpisode(episode.id)}>
       <Header>Continue Ouvindo</Header>
       <div style={{ display: 'flex', gap: 24 }}>
         <BigImage url={podcastUtil.imageUrl(podcast)}>
@@ -104,7 +105,7 @@ export const LastPlayedCard: React.FC<{ lastPlayed: EpisodeWithPodcast }> = ({ l
                 )
               }
             </div>
-            <IconButton icon="more_vert"/>
+            <IconButton icon="more_vert" onClick={() => contextMenu.podcastEpisode(episode.id)}/>
           </div>
         </DescriptionWrapper>
       </div>

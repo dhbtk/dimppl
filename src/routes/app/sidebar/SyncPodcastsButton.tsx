@@ -26,6 +26,9 @@ export const SyncPodcastsButton: React.FC = () => {
     listen('sync-podcasts-done', () => {
       setLoading(false)
     })
+    listen('sync-podcasts-start', () => {
+      setLoading(true)
+    })
   }, [setLoading])
   return (
     <SpinningButton type="button" disabled={loading} onClick={() => !loading && submit()}>

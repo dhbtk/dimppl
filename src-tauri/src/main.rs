@@ -32,6 +32,7 @@ mod extensions;
 mod frontend_change_tracking;
 mod menus;
 mod models;
+mod navigation;
 mod player;
 mod schema;
 mod show_file_in_folder;
