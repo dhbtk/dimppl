@@ -12,6 +12,7 @@ use crate::models::podcast::{build_backend_sync_request, store_backend_sync_resp
 use crate::models::{episode, podcast, EpisodeProgress};
 use crate::models::{Episode, Podcast};
 use crate::player::Player;
+use crate::show_file_in_folder::show_file_in_folder;
 use std::ops::Deref;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, Window};
@@ -277,5 +278,23 @@ pub fn mark_episode_not_complete(id: i32, app: AppHandle) -> AppResult<()> {
     let progress_id = episode::mark_as_not_complete(id, &mut connection)?;
     app.send_invalidate_cache(EntityChange::Episode(id))?;
     app.send_invalidate_cache(EntityChange::EpisodeProgress(progress_id))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn show_episode_file_in_folder(id: i32) -> AppResult<()> {
+    let mut connection = db_connect();
+    let episode = episode::find_one(id, &mut connection)?;
+    if !episode.content_local_path.is_empty() {
+        show_file_in_folder(&episode.content_local_path)?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn erase_episode_download(id: i32, app: AppHandle) -> AppResult<()> {
+    let mut connection = db_connect();
+    episode::erase_downloaded_file(id, &mut connection)?;
+    app.send_invalidate_cache(EntityChange::Episode(id))?;
     Ok(())
 }

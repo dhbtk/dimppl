@@ -34,6 +34,7 @@ mod menus;
 mod models;
 mod player;
 mod schema;
+mod show_file_in_folder;
 
 #[tokio::main]
 #[allow(deprecated)]
@@ -109,7 +110,9 @@ async fn main() {
             commands::set_up_media_controls,
             commands::show_context_menu,
             commands::mark_episode_complete,
-            commands::mark_episode_not_complete
+            commands::mark_episode_not_complete,
+            commands::show_episode_file_in_folder,
+            commands::erase_episode_download
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

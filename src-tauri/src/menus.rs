@@ -136,8 +136,8 @@ fn menu_event_handler_inner(app_handle: &AppHandle, event: MenuEvent) -> AppResu
             let cloned = app_handle.clone();
             tokio::spawn(async move { commands::download_episode(id, cloned.state(), cloned.clone()).await });
         }
-        ContextMenuOption::RemoveEpisodeDownload { .. } => {
-            tracing::info!("TODO: remove episode download");
+        ContextMenuOption::RemoveEpisodeDownload { id } => {
+            commands::erase_episode_download(id, app_handle.clone())?;
         }
         ContextMenuOption::MarkAsCompleted { id } => {
             commands::mark_episode_complete(id, app_handle.clone())?;
@@ -145,7 +145,9 @@ fn menu_event_handler_inner(app_handle: &AppHandle, event: MenuEvent) -> AppResu
         ContextMenuOption::MarkAsNotCompleted { id } => {
             commands::mark_episode_not_complete(id, app_handle.clone())?;
         }
-        ContextMenuOption::ShowFileInFolder { .. } => {}
+        ContextMenuOption::ShowFileInFolder { id } => {
+            commands::show_episode_file_in_folder(id)?;
+        }
         ContextMenuOption::GoToEpisode { .. } => {}
         ContextMenuOption::GoToPodcast { .. } => {}
         ContextMenuOption::Separator => {}

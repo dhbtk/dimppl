@@ -1,6 +1,8 @@
 use std::cmp::min;
+use std::fs;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 use std::time::Instant;
 
 use anyhow::Context;
@@ -22,6 +24,7 @@ use crate::extensions::{ResponseExt, StrOptionExt};
 use crate::models::episode_downloads::{EpisodeDownloadProgress, EpisodeDownloads};
 use crate::models::podcast::NewProgress;
 use crate::models::{Episode, EpisodeProgress, Podcast};
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EpisodeWithProgress {
@@ -171,6 +174,25 @@ pub fn mark_as_not_complete(the_episode_id: i32, conn: &mut SqliteConnection) ->
         .execute(conn)?;
     let progress = find_one_progress(the_episode_id, conn)?;
     Ok(progress.id)
+}
+
+pub fn erase_downloaded_file(the_episode_id: i32, conn: &mut SqliteConnection) -> AppResult<()> {
+    let episode = find_one(the_episode_id, conn)?;
+    if episode.content_local_path.is_empty() {
+        return Ok(());
+    }
+    let path = Path::new(&episode.content_local_path);
+    if path.exists() {
+        fs::remove_file(path)?;
+    }
+    {
+        use crate::schema::episodes::dsl::*;
+        diesel::update(episodes)
+            .set(content_local_path.eq(""))
+            .filter(id.eq(the_episode_id))
+            .execute(conn)?;
+    }
+    Ok(())
 }
 
 pub async fn start_download(

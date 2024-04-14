@@ -13,7 +13,7 @@ export const AppRoute: React.FC = () => {
         navigate({ to: settingsRoute.to })
       }
     })
-  })
+  }, [])
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar/>
