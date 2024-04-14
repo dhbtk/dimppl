@@ -22,7 +22,6 @@ use crate::extensions::{ResponseExt, StrOptionExt};
 use crate::models::episode_downloads::{EpisodeDownloadProgress, EpisodeDownloads};
 use crate::models::podcast::NewProgress;
 use crate::models::{Episode, EpisodeProgress, Podcast};
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EpisodeWithProgress {
@@ -150,6 +149,30 @@ pub fn list_latest_episodes(conn: &mut SqliteConnection) -> AppResult<Vec<Episod
     Ok(results)
 }
 
+pub fn mark_as_complete(the_episode_id: i32, conn: &mut SqliteConnection) -> AppResult<i32> {
+    use crate::schema::episode_progresses::dsl::*;
+    diesel::update(episode_progresses)
+        .set((completed.eq(true), updated_at.eq(Utc::now().naive_utc())))
+        .filter(episode_id.eq(the_episode_id))
+        .execute(conn)?;
+    let progress = find_one_progress(the_episode_id, conn)?;
+    Ok(progress.id)
+}
+
+pub fn mark_as_not_complete(the_episode_id: i32, conn: &mut SqliteConnection) -> AppResult<i32> {
+    use crate::schema::episode_progresses::dsl::*;
+    diesel::update(episode_progresses)
+        .set((
+            completed.eq(false),
+            listened_seconds.eq(0),
+            updated_at.eq(Utc::now().naive_utc()),
+        ))
+        .filter(episode_id.eq(the_episode_id))
+        .execute(conn)?;
+    let progress = find_one_progress(the_episode_id, conn)?;
+    Ok(progress.id)
+}
+
 pub async fn start_download(
     episode_id: i32,
     progress_indicator: &EpisodeDownloads,
@@ -157,22 +180,18 @@ pub async fn start_download(
 ) -> AppResult<()> {
     let episode = find_one(episode_id, conn)?;
     tracing::debug!("progress_indicator.set_progress");
-    progress_indicator
-        .set_progress(&episode, EpisodeDownloadProgress::default())
-        .await;
+    progress_indicator.set_progress(&episode, EpisodeDownloadProgress::default());
 
     let response = reqwest::get(&episode.content_url).await?;
     if !response.status().is_success() {
-        progress_indicator.mark_done(episode_id).await;
+        progress_indicator.mark_done(episode_id);
         return Ok(()); // this is a lie tho
     }
 
     let mut downloaded: u64 = 0;
     let total_length = response.content_length().unwrap_or(0);
     tracing::debug!("progress_indicator.set_progress total_length {total_length}");
-    progress_indicator
-        .set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length))
-        .await;
+    progress_indicator.set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length));
 
     let extension = extract_episode_filename_extension(&episode, &response);
     let file_name = format!("{}-{}.{}", episode.podcast_id, episode.id, extension);
@@ -189,9 +208,7 @@ pub async fn start_download(
         let new = min(downloaded + (chunk.len() as u64), total_length);
         downloaded = new;
         if event_emit_ts.elapsed().as_millis() > 100 {
-            progress_indicator
-                .set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length))
-                .await;
+            progress_indicator.set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length));
             event_emit_ts = Instant::now();
         }
     }
@@ -210,7 +227,7 @@ pub async fn start_download(
             crate::schema::episodes::dsl::length.eq(file_duration as i32),
         ))
         .execute(conn)?;
-    progress_indicator.mark_done(episode_id).await;
+    progress_indicator.mark_done(episode_id);
 
     Ok(())
 }

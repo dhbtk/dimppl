@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+extern crate core;
+
 use std::fs;
 
 use std::path::PathBuf;
@@ -105,7 +107,9 @@ async fn main() {
             commands::set_volume,
             commands::seek,
             commands::set_up_media_controls,
-            commands::show_context_menu
+            commands::show_context_menu,
+            commands::mark_episode_complete,
+            commands::mark_episode_not_complete
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

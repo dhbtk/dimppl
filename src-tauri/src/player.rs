@@ -62,6 +62,10 @@ impl Player {
     pub fn set_playback_speed(&self, speed: f32) {
         self.new_player.set_playback_speed(speed);
     }
+
+    pub fn latest_status(&self) -> Option<PlayerStatus> {
+        self.new_player.latest_status()
+    }
 }
 
 #[derive(Clone, Serialize)]

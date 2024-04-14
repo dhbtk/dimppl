@@ -5,7 +5,7 @@ use crate::config::{Config, ConfigWrapper};
 use crate::database::db_connect;
 use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
-use crate::menus::ContextMenuOption;
+use crate::menus::ContextMenuType;
 use crate::models::episode::{EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response};
@@ -249,8 +249,33 @@ pub async fn set_up_media_controls(app: AppHandle, player: tauri::State<'_, Arc<
 }
 
 #[tauri::command]
-pub async fn show_context_menu(app: AppHandle, window: Window, menu_option: ContextMenuOption) -> AppResult<()> {
-    let menu = menu_option.show_context_menu(app)?;
+pub async fn show_context_menu(
+    app: AppHandle,
+    window: Window,
+    menu_option: ContextMenuType,
+    player: tauri::State<'_, Arc<Player>>,
+    progress_indicator: tauri::State<'_, EpisodeDownloads>,
+) -> AppResult<()> {
+    let player = player.deref().clone();
+    let menu = menu_option.show_context_menu(app, player.as_ref(), progress_indicator.deref().clone())?;
     window.popup_menu(&menu)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn mark_episode_complete(id: i32, app: AppHandle) -> AppResult<()> {
+    let mut connection = db_connect();
+    let progress_id = episode::mark_as_complete(id, &mut connection)?;
+    app.send_invalidate_cache(EntityChange::Episode(id))?;
+    app.send_invalidate_cache(EntityChange::EpisodeProgress(progress_id))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn mark_episode_not_complete(id: i32, app: AppHandle) -> AppResult<()> {
+    let mut connection = db_connect();
+    let progress_id = episode::mark_as_not_complete(id, &mut connection)?;
+    app.send_invalidate_cache(EntityChange::Episode(id))?;
+    app.send_invalidate_cache(EntityChange::EpisodeProgress(progress_id))?;
     Ok(())
 }

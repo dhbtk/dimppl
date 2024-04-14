@@ -47,6 +47,7 @@ pub struct NewPlayer {
     playback_speed: Arc<RwLock<f32>>,
     media_controls: Arc<RwLock<Option<MediaControls>>>,
     last_artwork_episode_id: Arc<RwLock<i32>>,
+    latest_status: Arc<Mutex<Option<PlayerStatus>>>,
 }
 
 enum PlayerCommand {
@@ -70,7 +71,12 @@ impl NewPlayer {
             playback_speed: Arc::new(RwLock::new(1.0)),
             media_controls: Arc::new(RwLock::new(None)),
             last_artwork_episode_id: Arc::new(RwLock::new(0)),
+            latest_status: Default::default(),
         }
+    }
+
+    pub fn latest_status(&self) -> Option<PlayerStatus> {
+        self.latest_status.clone().lock().unwrap().clone()
     }
 
     pub fn set_up_media_controls(&self, handle: Option<*mut c_void>) {
@@ -234,7 +240,7 @@ impl NewPlayer {
     fn broadcast_status_self(&self, save_progress: bool) {
         let episode = self.playing_episode.read().unwrap();
         let elapsed = self.played_millis.load(Ordering::Relaxed);
-        Self::broadcast_status(
+        let status = Self::broadcast_status(
             &self.app_handle,
             episode.clone(),
             *self.is_paused.read().unwrap(),
@@ -245,6 +251,7 @@ impl NewPlayer {
             &mut self.media_controls.write().unwrap(),
             &mut self.last_artwork_episode_id.write().unwrap(),
         );
+        *self.latest_status.lock().unwrap() = Some(status);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -258,7 +265,7 @@ impl NewPlayer {
         save_progress: bool,
         maybe_controls: &mut Option<MediaControls>,
         last_seen_episode_id: &mut i32,
-    ) {
+    ) -> PlayerStatus {
         if save_progress && episode_container.is_some() {
             use crate::schema::episode_progresses::dsl::*;
             let (episode, _) = episode_container.clone().unwrap();
@@ -285,17 +292,15 @@ impl NewPlayer {
                 .unwrap();
             let _ = app_handle.send_invalidate_cache(EntityChange::EpisodeProgress(progress.id));
         }
-        let _ = app_handle.emit(
-            "player-status",
-            PlayerStatus {
-                is_paused: paused,
-                episode: episode_container.as_ref().map(|(ep, _)| ep.clone()),
-                podcast: episode_container.as_ref().map(|(_, podcast)| podcast.clone()),
-                elapsed: elapsed / 1000,
-                duration,
-                loading,
-            },
-        );
+        let status = PlayerStatus {
+            is_paused: paused,
+            episode: episode_container.as_ref().map(|(ep, _)| ep.clone()),
+            podcast: episode_container.as_ref().map(|(_, podcast)| podcast.clone()),
+            elapsed: elapsed / 1000,
+            duration,
+            loading,
+        };
+        let _ = app_handle.emit("player-status", status.clone());
         if save_progress {
             if let Some(controls) = maybe_controls {
                 if let Some((episode, podcast)) = episode_container {
@@ -322,6 +327,7 @@ impl NewPlayer {
                 }
             }
         }
+        status
     }
 
     fn play_track(&self, mut reader: Box<dyn FormatReader>, starting_at: i32) -> AppResult<()> {
