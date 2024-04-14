@@ -12,6 +12,7 @@ use tauri::http::Response;
 use crate::config::ConfigWrapper;
 use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
+use crate::main_menu::build_main_menu;
 use crate::menus::menu_event_handler;
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
@@ -30,6 +31,7 @@ mod environment;
 mod errors;
 mod extensions;
 mod frontend_change_tracking;
+mod main_menu;
 mod menus;
 mod models;
 mod navigation;
@@ -81,6 +83,7 @@ async fn main() {
             player.set_playback_speed(config.playback_speed);
             app.manage(player);
             app.on_menu_event(menu_event_handler);
+            app.set_menu(build_main_menu(app.handle()).unwrap()).unwrap();
             #[cfg(debug_assertions)]
             {
                 app.get_webview("main").unwrap().open_devtools();
