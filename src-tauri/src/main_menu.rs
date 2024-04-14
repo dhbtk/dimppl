@@ -1,11 +1,14 @@
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use tauri::menu::{
     AboutMetadata, Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu, HELP_SUBMENU_ID, WINDOW_SUBMENU_ID,
 };
 use tauri::{AppHandle, Wry};
 
-#[derive(Serialize, Deserialize)]
+const SER_TAG: &str = "MainMenuOption--";
+
+#[derive(Serialize, Deserialize, Debug)]
 pub enum MainMenuOption {
     Settings,
     AddNewPodcast,
@@ -26,7 +29,22 @@ pub enum MainMenuOption {
 
 impl From<MainMenuOption> for MenuId {
     fn from(value: MainMenuOption) -> Self {
-        Self(serde_json::to_string(&value).unwrap())
+        Self(format!("{}{}", SER_TAG, serde_json::to_string(&value).unwrap()))
+    }
+}
+
+impl TryFrom<String> for MainMenuOption {
+    type Error = AppError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.starts_with(SER_TAG) {
+            let result = serde_json::from_str::<MainMenuOption>(value.strip_prefix(SER_TAG).unwrap());
+            return match result {
+                Ok(result) => Ok(result),
+                Err(err) => Err(AppError(err.into())),
+            };
+        }
+        Err(anyhow!("incorrect tag").into())
     }
 }
 

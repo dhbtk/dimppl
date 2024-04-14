@@ -1,16 +1,20 @@
 use crate::commands;
+use anyhow::anyhow;
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
-use tauri::menu::{IsMenuItem, Menu, MenuBuilder, MenuEvent, MenuItem, MenuItemKind, PredefinedMenuItem};
+use tauri::menu::{IsMenuItem, Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem};
 use tauri::{AppHandle, Manager, Wry};
 
 use crate::database::db_connect;
-use crate::errors::AppResult;
+use crate::errors::{AppError, AppResult};
 use crate::models::episode;
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::navigation::{AppRoute, NavigationExt};
 use crate::player::Player;
 
-#[derive(Serialize, Deserialize, Eq, PartialEq)]
+const SER_TAG: &str = "ContextMenuOption--";
+
+#[derive(Serialize, Deserialize, Eq, PartialEq, Display, Debug)]
 pub enum ContextMenuOption {
     // For episodes:
     PlayEpisode { id: i32 },
@@ -48,7 +52,7 @@ impl ContextMenuOption {
         }
         MenuItem::with_id(
             app_handle,
-            serde_json::to_string(self).unwrap(),
+            format!("{}{}", SER_TAG, serde_json::to_string(self).unwrap()),
             self.label(),
             true,
             None::<&str>,
@@ -59,6 +63,21 @@ impl ContextMenuOption {
 
     pub fn make_menu_items(vec: Vec<Self>, app_handle: &AppHandle) -> Vec<MenuItemKind<Wry>> {
         vec.iter().filter_map(|option| option.menu_item(app_handle)).collect()
+    }
+}
+
+impl TryFrom<String> for ContextMenuOption {
+    type Error = AppError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.starts_with(SER_TAG) {
+            let result = serde_json::from_str::<ContextMenuOption>(value.strip_prefix(SER_TAG).unwrap());
+            return match result {
+                Ok(result) => Ok(result),
+                Err(err) => Err(AppError(err.into())),
+            };
+        }
+        Err(anyhow!("incorrect tag").into())
     }
 }
 
@@ -116,17 +135,16 @@ impl ContextMenuType {
     }
 }
 
-pub fn menu_event_handler(app_handle: &AppHandle, event: MenuEvent) {
-    let result = menu_event_handler_inner(app_handle, event);
+pub fn context_menu_event_handler(app_handle: &AppHandle, option: ContextMenuOption) {
+    let result = menu_event_handler_inner(app_handle, option);
     if let Err(err) = result {
         tracing::error!("Error handling menu event: {}", err);
     }
 }
 
-fn menu_event_handler_inner(app_handle: &AppHandle, event: MenuEvent) -> AppResult<()> {
-    tracing::info!("menu item click: {}", event.id.0);
-    let maybe_option: ContextMenuOption = serde_json::from_str(&event.id.0)?;
-    match maybe_option {
+fn menu_event_handler_inner(app_handle: &AppHandle, option: ContextMenuOption) -> AppResult<()> {
+    tracing::info!("context menu item click: {option}");
+    match option {
         ContextMenuOption::PlayEpisode { id } => {
             commands::play_episode(id, app_handle.state())?;
         }

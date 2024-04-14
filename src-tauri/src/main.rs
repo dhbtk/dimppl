@@ -12,8 +12,8 @@ use tauri::http::Response;
 use crate::config::ConfigWrapper;
 use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
-use crate::main_menu::build_main_menu;
-use crate::menus::menu_event_handler;
+use crate::main_menu::{build_main_menu, MainMenuOption};
+use crate::menus::{context_menu_event_handler, ContextMenuOption};
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
 use crate::player::Player;
@@ -82,7 +82,16 @@ async fn main() {
             player.set_volume(config.volume);
             player.set_playback_speed(config.playback_speed);
             app.manage(player);
-            app.on_menu_event(menu_event_handler);
+            app.on_menu_event(move |handle, event| {
+                let payload = event.id.0;
+                if let Ok(context_menu_event) = ContextMenuOption::try_from(payload.clone()) {
+                    context_menu_event_handler(handle, context_menu_event);
+                } else if let Ok(main_menu_event) = MainMenuOption::try_from(payload.clone()) {
+                    tracing::info!("not yet implemented: {:?}", main_menu_event);
+                } else {
+                    tracing::info!("option not recognized: {payload}");
+                }
+            });
             app.set_menu(build_main_menu(app.handle()).unwrap()).unwrap();
             #[cfg(debug_assertions)]
             {
