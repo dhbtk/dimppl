@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import { BackButton } from '../podcast/BackButton.tsx'
 import { onboardingUserAccountRoute, settingsRoute } from '../../../routeDefinitions.ts'
 import { Link } from '@tanstack/react-router'
+import { NoScrollContainer, SettingsToolbar } from './shared.tsx'
 
 const RootDiv = styled.div`
   flex: 1;
@@ -27,13 +28,16 @@ const Header = styled.h1`
 export const SettingsRoute: React.FC = () => {
   const config = settingsRoute.useLoaderData()
   return (
-    <RootDiv>
-      <WrapperDiv>
-        <BackButton/>
-        <Header>Configurações</Header>
-        <pre>{JSON.stringify(config, null, 2)}</pre>
-        <Link to={onboardingUserAccountRoute.to}>onboardingUserAccountRoute</Link>
-      </WrapperDiv>
-    </RootDiv>
+    <NoScrollContainer>
+      <SettingsToolbar/>
+      <RootDiv>
+        <WrapperDiv>
+          <BackButton/>
+          <Header>Configurações</Header>
+          <pre>{JSON.stringify(config, null, 2)}</pre>
+          <Link to={onboardingUserAccountRoute.to}>onboardingUserAccountRoute</Link>
+        </WrapperDiv>
+      </RootDiv>
+    </NoScrollContainer>
   )
 }

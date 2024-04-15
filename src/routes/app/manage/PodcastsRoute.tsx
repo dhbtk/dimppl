@@ -1,7 +1,11 @@
 import React from 'react'
+import { NoScrollContainer, SettingsToolbar } from './shared.tsx'
 
 export const PodcastsRoute: React.FC = () => {
   return (
-    <div>PodcastsRoute</div>
+    <NoScrollContainer>
+      <SettingsToolbar/>
+      <div>PodcastsRoute</div>
+    </NoScrollContainer>
   )
 }
