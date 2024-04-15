@@ -2,11 +2,11 @@ use crate::backend::endpoints;
 use crate::backend::endpoints::sync_remote_podcasts;
 use crate::backend::models::CreateDeviceRequest;
 use crate::config::{Config, ConfigWrapper};
+use crate::context_menus::ContextMenuType;
 use crate::database::db_connect;
 use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
-use crate::menus::ContextMenuType;
-use crate::models::episode::{EpisodeWithPodcast, EpisodeWithProgress};
+use crate::models::episode::{EpisodeWithFileSize, EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response};
 use crate::models::{episode, podcast, EpisodeProgress};
@@ -298,4 +298,11 @@ pub fn erase_episode_download(id: i32, app: AppHandle) -> AppResult<()> {
     episode::erase_downloaded_file(id, &mut connection)?;
     app.send_invalidate_cache(EntityChange::Episode(id))?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn list_all_downloads() -> AppResult<Vec<EpisodeWithFileSize>> {
+    let mut connection = db_connect();
+    let downloads = episode::find_all_downloaded(&mut connection)?;
+    Ok(downloads)
 }

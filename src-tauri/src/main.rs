@@ -10,10 +10,10 @@ use std::sync::Arc;
 use tauri::http::Response;
 
 use crate::config::ConfigWrapper;
+use crate::context_menus::{context_menu_event_handler, ContextMenuOption};
 use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
-use crate::main_menu::{build_main_menu, MainMenuOption};
-use crate::menus::{context_menu_event_handler, ContextMenuOption};
+use crate::main_menu::{build_main_menu, main_menu_event_handler, MainMenuOption};
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
 use crate::player::Player;
@@ -25,6 +25,7 @@ use tracing_subscriber::EnvFilter;
 mod backend;
 mod commands;
 mod config;
+mod context_menus;
 mod database;
 mod directories;
 mod environment;
@@ -32,7 +33,6 @@ mod errors;
 mod extensions;
 mod frontend_change_tracking;
 mod main_menu;
-mod menus;
 mod models;
 mod navigation;
 mod player;
@@ -87,7 +87,7 @@ async fn main() {
                 if let Ok(context_menu_event) = ContextMenuOption::try_from(payload.clone()) {
                     context_menu_event_handler(handle, context_menu_event);
                 } else if let Ok(main_menu_event) = MainMenuOption::try_from(payload.clone()) {
-                    tracing::info!("not yet implemented: {:?}", main_menu_event);
+                    main_menu_event_handler(handle, main_menu_event);
                 } else {
                     tracing::info!("option not recognized: {payload}");
                 }
@@ -125,7 +125,8 @@ async fn main() {
             commands::mark_episode_complete,
             commands::mark_episode_not_complete,
             commands::show_episode_file_in_folder,
-            commands::erase_episode_download
+            commands::erase_episode_download,
+            commands::list_all_downloads
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

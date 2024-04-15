@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::cmp::{min, Reverse};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -38,6 +38,15 @@ pub struct EpisodeWithPodcast {
     pub episode: Episode,
     pub progress: EpisodeProgress,
     pub podcast: Podcast,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EpisodeWithFileSize {
+    pub episode: Episode,
+    pub progress: EpisodeProgress,
+    pub podcast: Podcast,
+    pub file_size: u64,
 }
 
 impl EpisodeWithProgress {
@@ -87,6 +96,39 @@ pub fn find_one_full(the_episode_id: i32, conn: &mut SqliteConnection) -> AppRes
             progress,
             podcast,
         })?;
+    Ok(results)
+}
+
+pub fn find_all_downloaded(conn: &mut SqliteConnection) -> AppResult<Vec<EpisodeWithFileSize>> {
+    use crate::schema::episode_progresses::dsl::episode_progresses;
+    use crate::schema::episodes::dsl::*;
+    use crate::schema::podcasts::dsl::podcasts;
+    let mut results = episodes
+        .inner_join(episode_progresses)
+        .inner_join(podcasts)
+        .filter(content_local_path.ne(""))
+        .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
+        .load(conn)?
+        .into_iter()
+        .map(|(progress, episode, podcast)| EpisodeWithPodcast {
+            episode,
+            progress,
+            podcast,
+        })
+        .filter_map(|data| {
+            let Ok(file) = File::open(&data.episode.content_local_path) else {
+                return None;
+            };
+            let Ok(metadata) = file.metadata() else { return None };
+            Some(EpisodeWithFileSize {
+                episode: data.episode,
+                progress: data.progress,
+                podcast: data.podcast,
+                file_size: metadata.len(),
+            })
+        })
+        .collect::<Vec<_>>();
+    results.sort_by_key(|k| Reverse(k.file_size));
     Ok(results)
 }
 

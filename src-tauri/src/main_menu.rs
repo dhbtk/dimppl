@@ -1,4 +1,5 @@
 use crate::errors::{AppError, AppResult};
+use crate::navigation::{AppRoute, NavigationExt};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use tauri::menu::{
@@ -283,4 +284,38 @@ pub fn build_main_menu(app_handle: &AppHandle) -> AppResult<Menu<Wry>> {
         ],
     )?;
     Ok(menu)
+}
+
+pub fn main_menu_event_handler(app_handle: &AppHandle, option: MainMenuOption) {
+    let result = event_handler_inner(app_handle, option);
+    if let Err(err) = result {
+        tracing::error!("Error handling main menu event: {}", err);
+    }
+}
+
+fn event_handler_inner(app_handle: &AppHandle, option: MainMenuOption) -> AppResult<()> {
+    match option {
+        MainMenuOption::Settings => {
+            app_handle.navigate(AppRoute::Settings)?;
+        }
+        MainMenuOption::AddNewPodcast => {}
+        MainMenuOption::SyncFeeds => {}
+        MainMenuOption::ManageFeeds => {
+            app_handle.navigate(AppRoute::Podcasts)?;
+        }
+        MainMenuOption::FindEpisode => {}
+        MainMenuOption::NavigateLatestEpisodes => {}
+        MainMenuOption::ManageDownloads => {
+            app_handle.navigate(AppRoute::Downloads)?;
+        }
+        MainMenuOption::PlayPause => {}
+        MainMenuOption::SkipForward => {}
+        MainMenuOption::SkipBackward => {}
+        MainMenuOption::NavigateToEpisode => {}
+        MainMenuOption::IncreaseVolume => {}
+        MainMenuOption::DecreaseVolume => {}
+        MainMenuOption::PlaybackSpeed(_) => {}
+        MainMenuOption::Help => {}
+    }
+    Ok(())
 }

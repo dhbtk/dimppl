@@ -47,6 +47,10 @@ export interface EpisodeWithPodcast {
   progress: EpisodeProgress
 }
 
+export interface EpisodeWithFileSize extends EpisodeWithPodcast {
+  fileSize: number
+}
+
 export const podcastApi = {
   listAll: async (): Promise<Podcast[]> => {
     return await invoke<Podcast[]>('list_all_podcasts')
@@ -86,5 +90,11 @@ export const podcastApi = {
   },
   getProgressForEpisode: async (episodeId: number): Promise<EpisodeProgress> => {
     return await invoke<EpisodeProgress>('find_progress_for_episode', { episodeId })
+  },
+  eraseEpisodeDownload: async (id: number): Promise<void> => {
+    return await invoke<void>('erase_episode_download', { id })
+  },
+  listAllDownloads: async (): Promise<EpisodeWithFileSize[]> => {
+    return await invoke<EpisodeWithFileSize[]>('list_all_downloads')
   }
 }
