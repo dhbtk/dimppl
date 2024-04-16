@@ -163,6 +163,7 @@ async fn do_download_episode(id: i32, progress_indicator: EpisodeDownloads, app:
     episode::start_download(id, &progress_indicator, &mut conn).await?;
     tracing::debug!("start_download finished, now invalidate_cache");
     app.send_invalidate_cache(EntityChange::Episode(id))?;
+    app.send_invalidate_cache(EntityChange::AllDownloads)?;
     tracing::debug!("ok");
     Ok(())
 }
@@ -297,6 +298,7 @@ pub fn erase_episode_download(id: i32, app: AppHandle) -> AppResult<()> {
     let mut connection = db_connect();
     episode::erase_downloaded_file(id, &mut connection)?;
     app.send_invalidate_cache(EntityChange::Episode(id))?;
+    app.send_invalidate_cache(EntityChange::AllDownloads)?;
     Ok(())
 }
 

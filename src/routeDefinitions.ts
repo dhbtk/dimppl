@@ -5,7 +5,7 @@ import { OnboardingDeviceNameRoute } from './routes/onboarding/OnboardingDeviceN
 import { AppRoute } from './routes/app/AppRoute.tsx'
 import { HomeRoute } from './routes/app/home/HomeRoute.tsx'
 import { PodcastRoute } from './routes/app/podcast/PodcastRoute.tsx'
-import { EpisodeWithPodcast, podcastApi } from './backend/podcastApi.ts'
+import { EpisodeWithFileSize, EpisodeWithPodcast, podcastApi } from './backend/podcastApi.ts'
 import { EpisodeRoute } from './routes/app/episode/EpisodeRoute.tsx'
 import { SettingsRoute } from './routes/app/manage/SettingsRoute.tsx'
 import { Config, configApi } from './backend/configApi.ts'
@@ -89,7 +89,8 @@ export const podcastsRoute = createRoute({
 export const downloadsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: 'downloads',
-  component: DownloadsRoute
+  component: DownloadsRoute,
+  loader: async (): Promise<EpisodeWithFileSize[]> => podcastApi.listAllDownloads()
 })
 
 const routeTree = rootRoute.addChildren([

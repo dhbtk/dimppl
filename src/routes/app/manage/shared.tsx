@@ -8,6 +8,7 @@ export const NoScrollContainer = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
+  max-height: 100%;
 `
 
 const ToolbarContainer = styled.div`
@@ -29,8 +30,9 @@ const ToolbarLink = styled(Link)`
   min-width: 28px;
   padding: 0 8px;
   cursor: default;
-  background-color: var(--gray05);
+  background-color: var(--gray12);
   font-size: 90%;
+  border: 2px ridge var(--gray12);
 
   &[disabled] {
     color: #b4b4b4;
@@ -43,6 +45,7 @@ const ToolbarLink = styled(Link)`
 
   &.active {
     background-color: var(--murrey);
+    border-style: groove;
   }
 `
 
@@ -62,3 +65,53 @@ export const SettingsToolbar: React.FC = () => {
     </ToolbarContainer>
   )
 }
+export const CoolTable = styled.table`
+  font-size: 90%;
+  border: 1px solid var(--gray07);
+  border-collapse: collapse;
+  width: 100%;
+
+  td, th {
+    padding: 2px 6px;
+    height: 3.1em;
+    border-bottom: 1px solid var(--gray07);
+  }
+
+  th {
+    text-align: start;
+    white-space: nowrap;
+    padding: 2px 8px;
+  }
+
+  th:not(:first-child):not(:last-child) {
+    border-left: 1px solid var(--gray07);
+    border-right: 1px solid var(--gray07);
+  }
+  
+  td {
+    vertical-align: middle;
+  }
+
+  td.tiny {
+    white-space: nowrap;
+    text-align: right;
+    width: 1em;
+  }
+
+  td.selectable {
+    -webkit-user-select: text;
+  }
+
+  tr:nth-child(odd) {
+    background-color: var(--gray05);
+  }
+
+  tr:nth-child(even) {
+    background-color: var(--gray07);
+  }
+`
+export const TableContainer = styled.div`
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px;
+`
