@@ -5,7 +5,6 @@ import { ImportPodcastButton } from './ImportPodcastButton.tsx'
 import { Link } from '@tanstack/react-router'
 import { appHomeRoute, podcastRoute } from '../../../routeDefinitions.ts'
 import styled, { keyframes } from 'styled-components'
-import { WindowControls } from 'tauri-controls'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { DownloadMonitor } from './DownloadMonitor.tsx'
 import { SyncPodcastsButton } from './SyncPodcastsButton.tsx'
@@ -35,9 +34,9 @@ const SidebarToolbar = styled.div`
   align-items: center;
   justify-content: flex-start;
   padding: 0 8px 0 0;
-  margin-bottom: 4px;
   gap: 4px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--gray07);
 `
 
 const SidebarLink = styled(Link)`
@@ -103,12 +102,6 @@ const SpinningLoader = styled.div`
   }
 `
 
-const Divider = styled.hr`
-  margin-top: 6px;
-  margin-bottom: 2px;
-  border-color: var(--gray25);
-`
-
 const podcastsCurrentlySyncing: Record<string, boolean> = {}
 
 export const Sidebar: React.FC = () => {
@@ -138,17 +131,16 @@ export const Sidebar: React.FC = () => {
       <SidebarToolbar
         data-tauri-drag-region={true}
       >
-        <WindowControls platform="macos" style={{ marginRight: 'auto' }}/>
+        {/*<WindowControls platform="macos" style={{ marginRight: 'auto' }}/>*/}
         <div style={{ flex: 1 }}/>
         <ImportPodcastButton/>
         <SyncPodcastsButton/>
       </SidebarToolbar>
-      <div style={{ padding: 8, flex: 1, overflowY: 'auto' }}>
+      <div style={{ padding: 8, flex: 1, paddingTop: 0, overflowY: 'auto' }}>
         <SidebarLink to={appHomeRoute.to} params={{}} search={{}} className="sidebar-link">
           <span className="material-icons-outlined">home</span>
           Home
         </SidebarLink>
-        <Divider/>
         {queryItems.map(podcast => (
           // @ts-ignore
           <SidebarLink key={podcast.id} to={podcastRoute.to} search={{}} params={{ podcastId: podcast.id.toString() }}

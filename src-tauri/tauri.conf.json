@@ -33,7 +33,7 @@
     "windows": [
       {
         "center": true,
-        "decorations": false,
+        "decorations": true,
         "fullscreen": false,
         "height": 600,
         "label": "main",
@@ -44,8 +44,7 @@
         "windowEffects": {
           "effects": [
             "appearanceBased"
-          ],
-          "radius": 9
+          ]
         }
       }
     ]

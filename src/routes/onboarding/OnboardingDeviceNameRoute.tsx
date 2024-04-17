@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { configApi } from '../../backend/configApi.ts'
 import { useNavigate } from '@tanstack/react-router'
 import { RootDiv } from '../../components/RootDiv.tsx'
-import { WindowTitlebar } from 'tauri-controls'
 import { AccessKeyGroup, Title, WrapperDiv } from './components.ts'
 import { PrettyButton } from '../../components/PrettyButton.tsx'
 
@@ -28,7 +27,6 @@ export const OnboardingDeviceNameRoute: React.FC = () => {
   }
   return (
     <RootDiv style={{ height: '100vh' }}>
-      <WindowTitlebar/>
       <WrapperDiv>
         <Title>Boas-vindas!</Title>
         <AccessKeyGroup>

@@ -46,6 +46,9 @@ const ToolbarLink = styled(Link)`
   &.active {
     background-color: var(--murrey);
     border-style: groove;
+    @media (prefers-color-scheme: light) {
+      color: #FFF;
+    }
   }
 `
 
@@ -87,7 +90,7 @@ export const CoolTable = styled.table`
     border-left: 1px solid var(--gray07);
     border-right: 1px solid var(--gray07);
   }
-  
+
   td {
     vertical-align: middle;
   }
