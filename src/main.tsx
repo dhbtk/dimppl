@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 
 import { RouterProvider } from '@tanstack/react-router'
 
-import 'normalize.css'
+import './preflight.css'
 import './app.css'
 import 'material-icons/iconfont/material-icons.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
