@@ -149,6 +149,7 @@ pub fn find_last_played(conn: &mut SqliteConnection) -> Option<EpisodeWithPodcas
             podcast,
         })
         .ok()
+        .filter(|ep| !ep.progress.completed)
 }
 
 pub fn list_listen_history(conn: &mut SqliteConnection) -> AppResult<Vec<EpisodeWithPodcast>> {
