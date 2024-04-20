@@ -8,6 +8,7 @@ pub enum EntityChange {
     Episode(i32),
     EpisodeProgress(i32),
     AllDownloads,
+    AllEpisodes,
 }
 
 impl From<EntityChange> for String {
@@ -19,6 +20,7 @@ impl From<EntityChange> for String {
             EntityChange::Episode(id) => format!("episode-{id}"),
             EntityChange::EpisodeProgress(id) => format!("episodeProgress-{id}"),
             EntityChange::AllDownloads => "allDownloads".to_string(),
+            EntityChange::AllEpisodes => "allEpisodes".to_string(),
         }
     }
 }

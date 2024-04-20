@@ -5,33 +5,28 @@ import { EpisodeWithPodcast, podcastApi } from '../../../backend/podcastApi.ts'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { Link } from '@tanstack/react-router'
 import { formatHumane } from '../../../timeUtil.ts'
-
-const Header = styled.h1`
-  font-size: 24px;
-  margin-left: 12px;
-  margin-bottom: 8px;
-`
+import { Header } from './shared.tsx'
 
 const HorizontalTileList = styled.div`
   display: flex;
   overflow-x: auto;
   width: calc(100vw - 230px);
   align-items: flex-start;
-  padding: 12px;
+  padding: 0 12px;
   gap: 12px;
 `
 
 const TileWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  width: 150px;
-  max-width: 150px;
+  width: 125px;
+  max-width: 125px;
   flex-shrink: 0;
 `
 
-const BigImage = styled.div<{url: string}>`
-  width: 150px;
-  height: 150px;
+const BigImage = styled.div<{ url: string }>`
+  width: 125px;
+  height: 125px;
   border-radius: 5px;
   background-size: contain;
   background-image: url("${props => props.url}");
@@ -44,10 +39,12 @@ const BigImage = styled.div<{url: string}>`
 const TileLink = styled(Link)`
   cursor: default;
   font-weight: bold;
+  font-size: 11px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   overflow: hidden;
+
   &:hover {
     cursor: default;
     text-decoration: underline;
@@ -68,11 +65,11 @@ const EpisodeTile: React.FC<{ data: EpisodeWithPodcast }> = ({ data }) => {
       <DateDisplay>
         {
           progress.completed ? 'Reproduzido' : (
-          progress.listenedSeconds === 0 ? (
-            formatHumane(episode.length)
-          ) : (
-            `${formatHumane(episode.length - progress.listenedSeconds)} restantes`
-          ))
+            progress.listenedSeconds === 0 ? (
+              formatHumane(episode.length)
+            ) : (
+              `${formatHumane(episode.length - progress.listenedSeconds)} restantes`
+            ))
         }
       </DateDisplay>
     </TileWrapper>

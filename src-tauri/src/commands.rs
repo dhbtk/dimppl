@@ -42,6 +42,7 @@ pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, Conf
             .unwrap();
 
         app.send_invalidate_cache(EntityChange::AllPodcasts).unwrap();
+        app.send_invalidate_cache(EntityChange::AllEpisodes).unwrap();
         let podcasts = podcast::list_all(&mut connection).unwrap();
         for podcast in &podcasts {
             let _ = app.emit("sync-podcast-stop", podcast.id);
