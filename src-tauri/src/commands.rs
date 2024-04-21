@@ -261,7 +261,9 @@ pub async fn show_context_menu(
     progress_indicator: tauri::State<'_, EpisodeDownloads>,
 ) -> AppResult<()> {
     let player = player.deref().clone();
-    let menu = menu_option.show_context_menu(app, player.as_ref(), progress_indicator.deref().clone())?;
+    let menu = menu_option
+        .show_context_menu(app, player.as_ref(), progress_indicator.deref().clone())
+        .await?;
     window.popup_menu(&menu)?;
     Ok(())
 }

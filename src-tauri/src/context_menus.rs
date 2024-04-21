@@ -87,7 +87,7 @@ pub enum ContextMenuType {
 }
 
 impl ContextMenuType {
-    pub fn show_context_menu(
+    pub async fn show_context_menu(
         self,
         app: AppHandle,
         player: &Player,
@@ -115,7 +115,7 @@ impl ContextMenuType {
                     options.push(ContextMenuOption::MarkAsCompleted { id });
                 }
                 options.push(ContextMenuOption::Separator);
-                if !downloads.in_progress().contains_key(&id) {
+                if !downloads.in_progress().await.contains_key(&id) {
                     if episode_data.episode.content_local_path.is_empty() {
                         options.push(ContextMenuOption::StartEpisodeDownload { id });
                     } else {
