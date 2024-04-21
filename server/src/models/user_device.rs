@@ -75,7 +75,7 @@ pub async fn user_and_device_from_http_request<'a>(
 
     let device = device_from_http_request(headers, conn).await?;
     let Ok(user) = user::find_one(device.user_id, conn).await else {
-        return unauthorized
+        return unauthorized;
     };
 
     Ok((user, device))
@@ -88,13 +88,17 @@ pub async fn device_from_http_request<'a>(
     use crate::schema::user_devices::dsl::*;
 
     let unauthorized = Err(crate::error_handling::AppError::unauthorized());
-    let Ok(token) = token_from_request(headers) else { return unauthorized; };
+    let Ok(token) = token_from_request(headers) else {
+        return unauthorized;
+    };
 
-    let Ok(device) = user_devices.select(UserDevice::as_select())
+    let Ok(device) = user_devices
+        .select(UserDevice::as_select())
         .filter(access_token.eq(token))
         .first(conn)
-        .await else {
-        return unauthorized
+        .await
+    else {
+        return unauthorized;
     };
     Ok(device)
 }
@@ -111,8 +115,8 @@ fn token_from_request(headers: &HeaderMap<HeaderValue>) -> AppResult<String> {
         .get("Authorization")
         .context("bearer token not found")?
         .to_str()?;
-    if token.starts_with("Bearer ") {
-        Ok(token[7..].to_string())
+    if let Some(token) = token.strip_prefix("Bearer ") {
+        Ok(token.to_string())
     } else {
         unauthorized
     }
