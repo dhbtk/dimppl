@@ -12,7 +12,7 @@ export const RecentEpisodesList: React.FC = () => {
     <>
       <Header style={{ marginBottom: -12 }}>Novos Episódios</Header>
       {data.data?.map(({ episode, podcast, progress }) => (
-        <EpisodeListItem key={episode.id} episode={episode} progress={progress} podcast={podcast}/>
+        <EpisodeListItem key={episode.id} episode={episode} progress={progress} podcast={podcast} showPodcastName/>
       ))}
     </>
   )

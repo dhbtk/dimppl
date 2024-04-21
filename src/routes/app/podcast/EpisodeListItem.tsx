@@ -8,7 +8,7 @@ import { Link } from '@tanstack/react-router'
 import { episodeDate, formatHumane, ratio } from '../../../timeUtil.ts'
 import { PlayButton } from './PlayButton.tsx'
 import { DownloadEpisodeButton } from './DownloadEpisodeButton.tsx'
-import { episodeRoute } from '../../../routeDefinitions.ts'
+import { episodeRoute, podcastRoute } from '../../../routeDefinitions.ts'
 import { contextMenu } from '../../../backend/contextMenu.ts'
 
 const EpisodeWrapper = styled.div`
@@ -31,7 +31,6 @@ const EpisodeInfoBox = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   width: 0;
 `
 
@@ -51,6 +50,10 @@ const EpisodeLink = styled(Link)`
     text-decoration: underline;
     cursor: default;
   }
+
+  &.notbold {
+    font-weight: normal;
+  }
 `
 
 const EpisodeDescription = styled.div`
@@ -64,13 +67,19 @@ const EpisodeDescription = styled.div`
   overflow: hidden;
   text-overflow: ellipsis;
   margin-right: 10px;
+
+  &.small {
+    height: 100px;
+    -webkit-line-clamp: 7;
+    line-height: 1.3;
+  }
 `
 
 const EpisodeControls = styled.div`
   border-left: 1px solid #E6e6e6;
   padding-left: 10px;
   width: 150px;
-  height: 120px;
+  height: 100%;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -98,8 +107,9 @@ export const EpisodeListItem: React.FC<{
   episode: Episode,
   podcast: Podcast,
   progress: EpisodeProgress,
-  style?: React.CSSProperties
-}> = ({ episode: initialEpisode, podcast, progress, style }) => {
+  style?: React.CSSProperties,
+  showPodcastName: boolean
+}> = ({ episode: initialEpisode, podcast, progress, style, showPodcastName }) => {
   const query = useQuery({
     queryKey: [`episode-${initialEpisode.id}`],
     queryFn: () => podcastApi.getEpisodeFull(initialEpisode.id),
@@ -118,8 +128,15 @@ export const EpisodeListItem: React.FC<{
                      title={episode.title}>
           {episode.title}
         </EpisodeLink>
-        <div style={{ display: 'flex', height: 120 }}>
-          <EpisodeDescription dangerouslySetInnerHTML={{ __html: episode.description }}/>
+        {showPodcastName && (
+          <EpisodeLink className="notbold" to={podcastRoute.to} params={{ podcastId: podcast.id.toString() }}
+                       title={podcast.name}>
+            {podcast.name}
+          </EpisodeLink>
+        )}
+        <div style={{ marginTop: 10, display: 'flex', height: showPodcastName ? 100 : 120 }}>
+          <EpisodeDescription className={showPodcastName ? 'small' : ''}
+                              dangerouslySetInnerHTML={{ __html: episode.description }}/>
           <EpisodeControls>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <DateDisplay>{episodeDate(episode.episodeDate)}</DateDisplay>

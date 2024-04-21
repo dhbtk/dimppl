@@ -89,7 +89,7 @@ export const LastPlayedCard: React.FC<{ lastPlayed: EpisodeWithPodcast }> = ({ l
     <WrapperDiv onContextMenu={() => contextMenu.podcastEpisode(episode.id)}>
       <Header>Continue Ouvindo</Header>
       <div style={{ display: 'flex', gap: 24 }}>
-        <BigImage url={podcastUtil.imageUrl(podcast)}>
+        <BigImage url={episode.imageUrl || podcastUtil.imageUrl(podcast)}>
           <PlayButton episode={episode}/>
         </BigImage>
         <DescriptionWrapper>
