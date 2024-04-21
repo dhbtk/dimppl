@@ -1,0 +1,52 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "productName": "Dimppl",
+  "version": "0.1.0",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "category": "Lifestyle",
+    "copyright": "",
+    "externalBin": [],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "longDescription": "",
+    "resources": [],
+    "shortDescription": "",
+    "targets": [
+      "dmg"
+    ]
+  },
+  "identifier": "com.dhbtk.dimppl",
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "center": true,
+        "decorations": true,
+        "fullscreen": false,
+        "height": 600,
+        "label": "main",
+        "resizable": true,
+        "title": "Dimppl",
+        "transparent": true,
+        "width": 1024,
+        "windowEffects": {
+          "effects": [
+            "appearanceBased"
+          ]
+        }
+      }
+    ]
+  }
+}
