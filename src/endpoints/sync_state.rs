@@ -1,10 +1,10 @@
 use crate::database::Pool;
 use crate::error_handling::AppResult;
-use crate::models::podcast::{SyncStateRequest, SyncStateResponse};
 use crate::models::{podcast, user_device};
 use axum::extract::State;
 use axum::headers::HeaderMap;
 use axum::Json;
+use dimppl_shared::sync::{SyncStateRequest, SyncStateResponse};
 
 pub async fn sync_state(
     State(pool): State<Pool>,
@@ -40,11 +40,11 @@ pub async fn sync_state(
 mod tests {
     use super::*;
     use crate::app::create_test_app;
-    use crate::models::podcast::{SyncPodcast, SyncPodcastEpisode};
     use crate::models::user_device::test_user_and_device;
     use axum::http;
     use axum::http::{Request, StatusCode};
     use chrono::{Local, NaiveDateTime};
+    use dimppl_shared::sync::{SyncPodcast, SyncPodcastEpisode};
     use hyper::Body;
     use serial_test::serial;
     use std::collections::HashMap;

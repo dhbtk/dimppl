@@ -3,10 +3,10 @@ use axum::headers::HeaderMap;
 use axum::http::StatusCode;
 use axum::Json;
 use axum_macros::debug_handler;
+use dimppl_shared::sync::{CreatePodcastEpisodeRequest, CreatePodcastRequest};
 
 use crate::database::Pool;
 use crate::error_handling::AppResult;
-use crate::models::podcast::{CreatePodcastEpisodeRequest, CreatePodcastRequest};
 use crate::models::user_device;
 use serde::{Deserialize, Serialize};
 

@@ -1,25 +1,13 @@
 use crate::database::AsyncConnection;
 use crate::error_handling::AppResult;
-use crate::models::{Podcast, User};
+use crate::models::{Podcast, PodcastEpisode, User};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use serde::{Deserialize, Serialize};
+use dimppl_shared::sync::{
+    CreatePodcastRequest, SyncPodcast, SyncPodcastEpisode, SyncStateResponse,
+};
 use std::collections::HashMap;
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CreatePodcastRequest {
-    pub user_id: i64,
-    pub url: String,
-    pub guid: String,
-    pub episodes: Vec<CreatePodcastEpisodeRequest>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CreatePodcastEpisodeRequest {
-    pub url: String,
-    pub guid: String,
-}
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum SaveResult {
@@ -35,15 +23,6 @@ impl From<usize> for SaveResult {
             SaveResult::NotSaved
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Selectable, Insertable, Queryable, Debug, PartialEq, Clone)]
-#[diesel(table_name = crate::schema::podcasts)]
-pub struct SyncPodcast {
-    pub guid: String,
-    pub url: String,
-    pub deleted_at: Option<NaiveDateTime>,
-    pub updated_at: NaiveDateTime,
 }
 
 impl From<Podcast> for SyncPodcast {
@@ -64,26 +43,24 @@ impl From<Podcast> for SyncPodcast {
     }
 }
 
-#[derive(Serialize, Deserialize, Selectable, Insertable, Queryable)]
-#[diesel(table_name = crate::schema::podcast_episodes)]
-pub struct SyncPodcastEpisode {
-    pub guid: String,
-    pub url: String,
-    pub listened_seconds: i32,
-    pub completed: bool,
-    pub updated_at: NaiveDateTime,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SyncStateRequest {
-    pub podcasts: Vec<SyncPodcast>,
-    pub episodes: HashMap<String, Vec<SyncPodcastEpisode>>,
-}
-
-#[derive(Serialize, Deserialize, Default)]
-pub struct SyncStateResponse {
-    pub podcasts: Vec<SyncPodcast>,
-    pub episodes: HashMap<String, Vec<SyncPodcastEpisode>>,
+impl From<PodcastEpisode> for SyncPodcastEpisode {
+    fn from(value: PodcastEpisode) -> Self {
+        let PodcastEpisode {
+            guid,
+            url,
+            listened_seconds,
+            completed,
+            updated_at,
+            ..
+        } = value;
+        Self {
+            guid,
+            url,
+            listened_seconds,
+            completed,
+            updated_at,
+        }
+    }
 }
 
 pub async fn create<'a>(
@@ -210,9 +187,12 @@ pub async fn get_sync_response<'a>(
             podcast_episodes
                 .filter(podcast_id.eq(podcast.id))
                 .order(guid.asc())
-                .select(SyncPodcastEpisode::as_select())
+                .select(PodcastEpisode::as_select())
                 .load(conn)
                 .await?
+                .into_iter()
+                .map(|e| e.into())
+                .collect::<Vec<_>>()
         };
         map.insert(podcast.guid.clone(), episodes);
     }
