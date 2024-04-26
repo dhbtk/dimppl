@@ -10,7 +10,7 @@ export const ToolbarButton = styled.button`
   width: 28px;
   cursor: default;
 
-  &[disabled] {
+  &[disabled], &:active {
     color: #b4b4b4;
   }
 

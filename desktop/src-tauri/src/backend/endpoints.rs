@@ -1,5 +1,6 @@
+use dimppl_shared::sync::{SyncStateRequest, SyncStateResponse};
 use crate::backend::models::{
-    CreateDeviceRequest, CreateDeviceResponse, CreateUserResponse, SyncStateRequest, SyncStateResponse,
+    CreateDeviceRequest, CreateDeviceResponse, CreateUserResponse,
 };
 use crate::environment::API_URL;
 use crate::errors::AppResult;

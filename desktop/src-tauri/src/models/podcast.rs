@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::backend::models::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest, SyncStateResponse};
 use crate::database::db_connect;
 use anyhow::Context;
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -15,6 +14,7 @@ use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
+use dimppl_shared::sync::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest, SyncStateResponse};
 
 use crate::directories::images_dir;
 use crate::errors::AppResult;
