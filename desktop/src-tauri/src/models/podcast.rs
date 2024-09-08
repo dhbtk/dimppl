@@ -8,13 +8,13 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::associations::HasTable;
 use diesel::prelude::*;
 use diesel::{insert_into, update};
+use dimppl_shared::sync::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest, SyncStateResponse};
 use futures::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
-use dimppl_shared::sync::{SyncPodcast, SyncPodcastEpisode, SyncStateRequest, SyncStateResponse};
 
 use crate::directories::images_dir;
 use crate::errors::AppResult;

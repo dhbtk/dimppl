@@ -1,5 +1,5 @@
 use crate::errors::AppResult;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 
 pub enum EntityChange {
     AllPodcasts,

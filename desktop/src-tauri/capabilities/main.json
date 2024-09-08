@@ -6,14 +6,14 @@
     "main"
   ],
   "permissions": [
-    "window:default",
-    "window:allow-start-dragging",
-    "window:allow-close",
-    "window:allow-minimize",
-    "window:allow-toggle-maximize",
-    "window:allow-internal-toggle-maximize",
-    "window:allow-set-fullscreen",
-    "event:default",
+    "core:window:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-set-fullscreen",
+    "core:event:default",
     "os:allow-os-type"
   ]
 }

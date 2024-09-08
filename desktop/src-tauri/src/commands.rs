@@ -15,7 +15,7 @@ use crate::player::Player;
 use crate::show_file_in_folder::show_file_in_folder;
 use std::ops::Deref;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, Window};
+use tauri::{AppHandle, Emitter, Manager, Window};
 use uuid::Uuid;
 
 #[tauri::command]

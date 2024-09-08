@@ -1,6 +1,6 @@
 use crate::errors::AppResult;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]

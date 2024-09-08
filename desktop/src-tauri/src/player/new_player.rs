@@ -25,7 +25,7 @@ use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, Track};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
 use symphonia::core::units::{Time, TimeStamp};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::time::Instant;
 
 use crate::database::db_connect;

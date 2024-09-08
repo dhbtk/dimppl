@@ -1,9 +1,7 @@
-use dimppl_shared::sync::{SyncStateRequest, SyncStateResponse};
-use crate::backend::models::{
-    CreateDeviceRequest, CreateDeviceResponse, CreateUserResponse,
-};
+use crate::backend::models::{CreateDeviceRequest, CreateDeviceResponse, CreateUserResponse};
 use crate::environment::API_URL;
 use crate::errors::AppResult;
+use dimppl_shared::sync::{SyncStateRequest, SyncStateResponse};
 
 pub async fn create_user() -> AppResult<CreateUserResponse> {
     let client = reqwest::Client::new();
