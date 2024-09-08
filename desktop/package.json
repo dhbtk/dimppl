@@ -8,14 +8,15 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "tauri:dev": "tauri dev"
+    "tauri:dev": "tauri dev",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
     "@tanstack/react-query": "^4.33.0",
     "@tanstack/react-router": "^1.12.15",
     "@tauri-apps/api": "^2.0.0-beta.7",
-    "@tauri-apps/cli": "^2.0.0-beta.12",
+    "@tauri-apps/cli": "^2.0.0-rc.12",
     "@tauri-apps/plugin-os": "^2.0.0-beta.2",
     "@tauri-apps/plugin-window": "^2.0.0-alpha.1",
     "file-url": "^4.0.0",
