@@ -7,21 +7,27 @@ use std::sync::Arc;
 use tauri::http::Response;
 
 use crate::config::ConfigWrapper;
-use crate::context_menus::{context_menu_event_handler, ContextMenuOption};
+#[cfg(not(target_os = "ios"))]
+use crate::context_menus::context_menu_event_handler;
 use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
+#[cfg(not(target_os = "ios"))]
 use crate::main_menu::{build_main_menu, main_menu_event_handler, MainMenuOption};
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast;
 use crate::player::Player;
+#[cfg(not(target_os = "ios"))]
+use menu_support::ContextMenuOption;
 use tauri::Manager;
 use tracing::Level;
 use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
 mod backend;
 mod commands;
 mod config;
+#[cfg(not(target_os = "ios"))]
 mod context_menus;
 mod database;
 mod directories;
@@ -29,7 +35,9 @@ mod environment;
 mod errors;
 mod extensions;
 mod frontend_change_tracking;
+#[cfg(not(target_os = "ios"))]
 mod main_menu;
+mod menu_support;
 mod models;
 mod navigation;
 mod player;
@@ -38,7 +46,12 @@ mod show_file_in_folder;
 
 #[allow(deprecated)]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub async fn run() {
+pub fn run() {
+    println!("starting run function");
+    // let collector = tracing_subscriber::registry()
+    //     .with(OsLogger::new("com.dianahorbatiuk.dimppl", "default"));
+    // tracing::subscriber::set_global_default(collector).expect("failed to set global subscriber");
+    #[cfg(not(target_os = "ios"))]
     tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)
         .with_env_filter(
@@ -50,11 +63,6 @@ pub async fn run() {
         .pretty()
         .init();
 
-    tauri::async_runtime::set(tokio::runtime::Handle::current());
-    ensure_data_dir();
-    prepare_database();
-    let db_url = database_path();
-    tracing::info!("db url: {db_url}");
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
         .manage(ConfigWrapper::default())
@@ -72,6 +80,10 @@ pub async fn run() {
             Response::builder().status(404).body(Vec::new()).unwrap()
         })
         .setup(|app| {
+            ensure_data_dir();
+            prepare_database();
+            let db_url = database_path();
+            tracing::info!("db url: {db_url}");
             app.manage(EpisodeDownloads::new(app.handle().clone()));
             let player = Arc::new(Player::new(app.handle().clone()));
             let config_wrapper = app.state::<ConfigWrapper>();
@@ -79,6 +91,7 @@ pub async fn run() {
             player.set_volume(config.volume);
             player.set_playback_speed(config.playback_speed);
             app.manage(player);
+            #[cfg(not(target_os = "ios"))]
             app.on_menu_event(move |handle, event| {
                 let payload = event.id.0;
                 if let Ok(context_menu_event) = ContextMenuOption::try_from(payload.clone()) {
@@ -89,10 +102,12 @@ pub async fn run() {
                     tracing::info!("option not recognized: {payload}");
                 }
             });
+            #[cfg(not(target_os = "ios"))]
             app.set_menu(build_main_menu(app.handle()).unwrap()).unwrap();
             #[cfg(debug_assertions)]
             {
-                app.get_webview("main").unwrap().open_devtools();
+                #[cfg(not(target_os = "ios"))]
+                app.get_webview_window("main").unwrap().open_devtools();
             }
             Ok(())
         })

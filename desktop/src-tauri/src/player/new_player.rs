@@ -143,7 +143,8 @@ impl NewPlayer {
                     }
                     MediaControlEvent::OpenUri(_) => {}
                     MediaControlEvent::Raise => {
-                        if let Some(window) = cloned_self.app_handle.get_window("main") {
+                        #[cfg(not(target_os = "ios"))]
+                        if let Some(window) = cloned_self.app_handle.get_webview_window("main") {
                             let _ = window.unminimize();
                         }
                     }

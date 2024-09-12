@@ -49,6 +49,7 @@ impl TryFrom<String> for MainMenuOption {
     }
 }
 
+#[cfg(not(target_os = "ios"))]
 pub fn build_main_menu(app_handle: &AppHandle) -> AppResult<Menu<Wry>> {
     let pkg_info = app_handle.package_info();
     let config = app_handle.config();

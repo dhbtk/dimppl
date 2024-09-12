@@ -2,10 +2,10 @@ use crate::backend::endpoints;
 use crate::backend::endpoints::sync_remote_podcasts;
 use crate::backend::models::CreateDeviceRequest;
 use crate::config::{Config, ConfigWrapper};
-use crate::context_menus::ContextMenuType;
 use crate::database::db_connect;
 use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
+use crate::menu_support::ContextMenuType;
 use crate::models::episode::{EpisodeWithFileSize, EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
 use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response};
@@ -241,7 +241,7 @@ pub async fn seek(to: i64, player: tauri::State<'_, Arc<Player>>) -> AppResult<(
 #[tauri::command]
 pub async fn set_up_media_controls(app: AppHandle, player: tauri::State<'_, Arc<Player>>) -> AppResult<()> {
     #[allow(unused)]
-    if let Some(window) = app.get_window("main") {
+    if let Some(window) = app.get_webview_window("main") {
         #[cfg(target_os = "windows")]
         let handle = Some(window.hwnd().unwrap().0 as *mut _);
         #[cfg(not(target_os = "windows"))]
@@ -260,11 +260,14 @@ pub async fn show_context_menu(
     player: tauri::State<'_, Arc<Player>>,
     progress_indicator: tauri::State<'_, EpisodeDownloads>,
 ) -> AppResult<()> {
-    let player = player.deref().clone();
-    let menu = menu_option
-        .show_context_menu(app, player.as_ref(), progress_indicator.deref().clone())
-        .await?;
-    window.popup_menu(&menu)?;
+    #[cfg(not(target_os = "ios"))]
+    {
+        let player = player.deref().clone();
+        let menu = menu_option
+            .show_context_menu(app, player.as_ref(), progress_indicator.deref().clone())
+            .await?;
+        window.popup_menu(&menu)?;
+    }
     Ok(())
 }
 

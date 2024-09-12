@@ -1,27 +1,28 @@
 [package]
-name = "app"
+name = "dimppl"
 version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
 license = ""
 repository = ""
-default-run = "app"
 edition = "2021"
 rust-version = "1.60"
 
 [lib]
-name = "app_lib"
-crate-type = ["staticlib", "cdylib", "rlib", "lib"]
+name = "dimppl_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-beta", features = [] }
+tauri-build = { version = "2.0.0-rc", features = [] }
 
 [dependencies]
+tauri-plugin-shell = "2.0.0-rc"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "2.0.0-beta", features = ["macos-private-api", "unstable"] }
+tauri = { version = "2.0.0-rc", features = [] }
 souvlaki = { git = "https://github.com/dhbtk/souvlaki.git" }
 diesel = { version = "2.1.1", features = ["sqlite", "chrono", "returning_clauses_for_sqlite_3_35"] }
 chrono = { version = "0.4.26", features = ["serde"] }
@@ -32,13 +33,13 @@ diesel_migrations = { version = "2.1.0", features = ["sqlite"] }
 toml = "0.7.6"
 gethostname = "0.4.3"
 anyhow = "1.0.75"
-reqwest = { version = "0.11.20", features = ["json", "stream"] }
+reqwest = { version = "0.12.7", features = ["json", "stream"] }
 rss = { version = "2.0.6", features = ["chrono", "atom"] }
 uuid = { version = "1.4.1", features = ["v4"] }
 tokio = { version = "1.32.0", features = ["bytes", "fs", "full"] }
 futures = "0.3.28"
 rfc822_sanitizer = "0.3.6"
-tauri-plugin-os = "2.0.0-beta.3"
+tauri-plugin-os = "2.0.0-rc"
 derive_more = "0.99.17"
 mime2ext = "0.1.52"
 futures-util = "0.3.28"
@@ -54,6 +55,7 @@ rubato = "0.14.1"
 arrayvec = "0.7.4"
 libsqlite3-sys = { version = "0.26.0", features = ["bundled"] }
 dimppl-shared = { path = "../../shared" }
+tracing-oslog = { git="https://github.com/sbag13/tracing-oslog.git" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
