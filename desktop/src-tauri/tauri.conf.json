@@ -5,7 +5,7 @@
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:5173",
     "frontendDist": "../dist"
   },
   "bundle": {
@@ -23,22 +23,29 @@
     "longDescription": "",
     "resources": [],
     "shortDescription": "",
-    "targets": "all",
-    "iOS": {
-      "frameworks": [
-        "CoreAudio",
-        "AudioToolbox"
-      ]
-    }
+    "targets": [
+      "dmg"
+    ]
   },
   "identifier": "com.dhbtk.dimppl",
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
+        "center": true,
+        "decorations": true,
+        "fullscreen": false,
         "height": 600,
         "label": "main",
+        "resizable": true,
         "title": "Dimppl",
-        "width": 1024
+        "transparent": true,
+        "width": 1024,
+        "windowEffects": {
+          "effects": [
+            "appearanceBased"
+          ]
+        }
       }
     ]
   },
