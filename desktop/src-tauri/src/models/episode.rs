@@ -159,7 +159,7 @@ pub fn list_listen_history(conn: &mut SqliteConnection) -> AppResult<Vec<Episode
     let results = episodes
         .inner_join(episode_progresses)
         .inner_join(podcasts)
-        .filter(listened_seconds.gt(0))
+        .filter(listened_seconds.gt(0).and(completed.eq(false)))
         .order_by(updated_at.desc())
         .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
         .limit(100)
@@ -280,6 +280,7 @@ pub async fn start_download(
             progress_indicator
                 .set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length))
                 .await;
+            tracing::debug!("progress: {downloaded}/{total_length} ({}%)", (downloaded as f64 / total_length as f64) * 100.0);
             event_emit_ts = Instant::now();
         }
     }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
-
+use std::time::Duration;
 use crate::database::db_connect;
 use anyhow::Context;
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -214,7 +214,7 @@ pub fn build_backend_sync_request(conn: &mut SqliteConnection) -> AppResult<Sync
 }
 
 pub async fn download_rss_feed(url: String, identifier: Option<String>) -> AppResult<ParsedPodcast> {
-    let content = reqwest::get(url).await?.bytes().await?;
+    let content = reqwest::Client::builder().timeout(Duration::from_secs(5)).build()?.get(url).send().await?.bytes().await?;
     let channel = Channel::read_from(&content[..])?;
     let podcast = ParsedPodcast::from_channel(channel, identifier).await?;
     Ok(podcast)

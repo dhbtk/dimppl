@@ -37,7 +37,6 @@ mod schema;
 mod show_file_in_folder;
 
 #[allow(deprecated)]
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
     tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)

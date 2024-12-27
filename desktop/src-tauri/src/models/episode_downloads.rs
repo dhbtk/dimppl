@@ -41,6 +41,13 @@ impl EpisodeDownloads {
     pub async fn mark_done(&self, id: i32) {
         let mut map = self.in_progress.write().await;
         map.remove(&id);
+        {
+            let mut cache = self.episode_instance_cache.write().await;
+            let index = cache.iter().position(|ep| ep.id == id);
+            if let Some(i) = index {
+                cache.remove(i);
+            }
+        }
         self.broadcast_change(map.deref()).await;
     }
 
