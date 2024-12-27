@@ -90,8 +90,19 @@ pub async fn sync_podcasts(conn: &mut SqliteConnection, app_handle: &AppHandle) 
 }
 
 async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResult<()> {
+    let id = podcast.id;
+    let name = podcast.name.clone();
+    let _ = app_handle.emit("sync-podcast-start", id);
+    let result = sync_single_podcast_inner(podcast).await;
+    if let Err(result) = result {
+        tracing::info!("Error syncing podcast {}: {}", name, result);
+    }
+    let _ = app_handle.emit("sync-podcast-stop", id);
+    Ok(())
+}
+
+async fn sync_single_podcast_inner(podcast: Podcast) -> AppResult<()> {
     let mut conn = db_connect();
-    let _ = app_handle.emit("sync-podcast-start", podcast.id);
     tracing::debug!("Updating podcast: {}", podcast.name.as_str());
     let parsed_podcast = download_rss_feed(podcast.feed_url.clone(), Some(podcast.guid.clone())).await?;
     let updated_podcast = UpdatedPodcast::new(
@@ -101,6 +112,8 @@ async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResu
     diesel::update(Podcast::table().filter(crate::schema::podcasts::dsl::id.eq(podcast.id)))
         .set(updated_podcast)
         .execute(&mut conn)?;
+    let total_episodes = parsed_podcast.episodes.len();
+    let mut new_episodes = 0;
     for episode in &parsed_podcast.episodes {
         let result = {
             use crate::schema::episodes::dsl::*;
@@ -116,6 +129,7 @@ async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResu
                 .returning(id)
                 .get_result(&mut conn)?
         } else {
+            new_episodes += 1;
             use crate::schema::episodes::dsl::*;
             insert_into(episodes::table())
                 .values(NewEpisode::from_parsed(episode, podcast.id))
@@ -142,7 +156,7 @@ async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResu
                 .execute(&mut conn)?;
         }
     }
-    let _ = app_handle.emit("sync-podcast-stop", podcast.id);
+    tracing::debug!("Finished with podcast {}: {new_episodes} new episodes out of {total_episodes}", podcast.name);
     Ok(())
 }
 
