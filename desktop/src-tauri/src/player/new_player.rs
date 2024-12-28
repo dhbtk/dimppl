@@ -13,7 +13,7 @@ use anyhow::anyhow;
 use chrono::Utc;
 use diesel::associations::HasTable;
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
-use lofty::AudioFile;
+use lofty::prelude::AudioFile;
 use souvlaki::{
     MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig, SeekDirection,
 };

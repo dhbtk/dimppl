@@ -11,7 +11,7 @@ use diesel::associations::HasTable;
 use diesel::insert_into;
 use diesel::prelude::*;
 use futures_util::StreamExt;
-use lofty::AudioFile;
+use lofty::prelude::AudioFile;
 use mime2ext::mime2ext;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Response;
