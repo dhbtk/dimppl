@@ -95,7 +95,7 @@ async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResu
     let _ = app_handle.emit("sync-podcast-start", id);
     let result = sync_single_podcast_inner(podcast).await;
     if let Err(result) = result {
-        tracing::info!("Error syncing podcast {}: {}", name, result);
+        tracing::info!("Error syncing podcast {}: {:?}", name, result);
     }
     let _ = app_handle.emit("sync-podcast-stop", id);
     Ok(())
@@ -228,7 +228,7 @@ pub fn build_backend_sync_request(conn: &mut SqliteConnection) -> AppResult<Sync
 }
 
 pub async fn download_rss_feed(url: String, identifier: Option<String>) -> AppResult<ParsedPodcast> {
-    let content = reqwest::Client::builder().timeout(Duration::from_secs(5)).build()?.get(url).send().await?.bytes().await?;
+    let content = reqwest::Client::builder().timeout(Duration::from_secs(30)).build()?.get(url).send().await?.bytes().await?;
     let channel = Channel::read_from(&content[..])?;
     let podcast = ParsedPodcast::from_channel(channel, identifier).await?;
     Ok(podcast)

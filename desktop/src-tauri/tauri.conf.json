@@ -43,7 +43,7 @@
         "width": 1024,
         "windowEffects": {
           "effects": [
-            "appearanceBased"
+            "windowBackground"
           ]
         }
       }
