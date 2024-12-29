@@ -156,12 +156,14 @@ pub fn list_listen_history(conn: &mut SqliteConnection) -> AppResult<Vec<Episode
     use crate::schema::episode_progresses::dsl::*;
     use crate::schema::episodes::dsl::*;
     use crate::schema::podcasts::dsl::podcasts;
+    use crate::schema::podcasts::deleted_at;
     let results = episodes
         .inner_join(episode_progresses)
         .inner_join(podcasts)
         .filter(listened_seconds.gt(0).and(completed.eq(false)))
         .order_by(updated_at.desc())
         .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
+        .filter(deleted_at.is_null())
         .limit(100)
         .load::<(EpisodeProgress, Episode, Podcast)>(conn)?
         .into_iter()
@@ -178,11 +180,13 @@ pub fn list_latest_episodes(conn: &mut SqliteConnection) -> AppResult<Vec<Episod
     use crate::schema::episode_progresses::dsl::*;
     use crate::schema::episodes::dsl::*;
     use crate::schema::podcasts::dsl::podcasts;
+    use crate::schema::podcasts::deleted_at;
     let results = episodes
         .inner_join(episode_progresses)
         .inner_join(podcasts)
         .order_by(episode_date.desc())
         .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
+        .filter(deleted_at.is_null())
         .limit(100)
         .load::<(EpisodeProgress, Episode, Podcast)>(conn)?
         .into_iter()

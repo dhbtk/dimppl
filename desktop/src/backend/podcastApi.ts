@@ -63,6 +63,11 @@ export interface PodcastUpdateRequest {
   url: string
 }
 
+export interface PodcastSyncError {
+  id: number
+  error: string
+}
+
 export const podcastApi = {
   listAll: async (): Promise<Podcast[]> => {
     return await invoke<Podcast[]>('list_all_podcasts')
@@ -114,5 +119,8 @@ export const podcastApi = {
   },
   updatePodcast: async (request: PodcastUpdateRequest): Promise<void> => {
     return await invoke<void>('update_podcast', { request })
+  },
+  deletePodcast: async (id: number): Promise<void> => {
+    return await invoke<void>('delete_podcast', { id })
   }
 }

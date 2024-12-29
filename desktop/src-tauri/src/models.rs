@@ -21,6 +21,7 @@ pub struct Podcast {
     pub description: String,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+    pub deleted_at: Option<NaiveDateTime>,
 }
 
 #[derive(Serialize, Clone, Debug)]

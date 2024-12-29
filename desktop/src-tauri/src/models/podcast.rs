@@ -24,7 +24,7 @@ use crate::models::{episode, Episode, EpisodeProgress, Podcast, PodcastStats};
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     use crate::schema::podcasts::dsl::*;
-    let results = podcasts.order_by(name.asc()).select(Podcast::as_select()).load(conn)?;
+    let results = podcasts.filter(deleted_at.is_null()).order_by(name.asc()).select(Podcast::as_select()).load(conn)?;
     Ok(results)
 }
 
@@ -113,6 +113,13 @@ pub struct UpdatePodcastRequest {
     pub url: String
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PodcastSyncError {
+    pub id: i32,
+    pub error: String
+}
+
 pub fn update_podcast(conn: &mut SqliteConnection, request: UpdatePodcastRequest) -> AppResult<()> {
     use crate::schema::podcasts::dsl::*;
     update(podcasts)
@@ -121,15 +128,27 @@ pub fn update_podcast(conn: &mut SqliteConnection, request: UpdatePodcastRequest
         .execute(conn)?;
     Ok(())
 }
-// 
-// pub fn delete_podcast(conn: &mut SqliteConnection, podcast_id: i32) -> AppResult<()> {
-//     use crate::schema::podcasts::dsl::*;
-//     update(podcasts)
-//         .set(deleted_at.eq(Utc::now().naive_utc()))
-//         .filter(id.eq(podcast_id))
-//         .execute(conn)?;
-//     Ok(())
-// }
+
+pub fn delete_podcast(conn: &mut SqliteConnection, the_podcast_id: i32) -> AppResult<()> {
+    let downloaded_episode_ids: Vec<i32> = {
+        use crate::schema::episodes::dsl::*;
+        episodes
+            .filter(id.eq(the_podcast_id).and(content_local_path.ne("")))
+            .select(id)
+            .load(conn)?
+    };
+    for id in downloaded_episode_ids {
+        episode::erase_downloaded_file(id, conn)?;
+    }
+    {
+        use crate::schema::podcasts::dsl::*;
+        update(podcasts)
+            .set(deleted_at.eq(Utc::now().naive_utc()))
+            .filter(id.eq(the_podcast_id))
+            .execute(conn)?;
+    }
+    Ok(())
+}
 
 pub async fn sync_podcasts(conn: &mut SqliteConnection, app_handle: &AppHandle) -> AppResult<()> {
     let podcasts = list_all(conn)?
@@ -141,13 +160,14 @@ pub async fn sync_podcasts(conn: &mut SqliteConnection, app_handle: &AppHandle) 
     Ok(())
 }
 
-async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResult<()> {
+pub async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> AppResult<()> {
     let id = podcast.id;
     let name = podcast.name.clone();
     let _ = app_handle.emit("sync-podcast-start", id);
     let result = sync_single_podcast_inner(podcast).await;
     if let Err(result) = result {
         tracing::info!("Error syncing podcast {}: {:?}", name, result);
+        let _ = app_handle.emit("sync-podcast-error", PodcastSyncError { id, error: result.to_string() });
     }
     let _ = app_handle.emit("sync-podcast-stop", id);
     Ok(())

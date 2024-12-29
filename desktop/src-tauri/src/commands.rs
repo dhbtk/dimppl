@@ -8,13 +8,14 @@ use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::episode::{EpisodeWithFileSize, EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
-use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response, UpdatePodcastRequest};
+use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response, sync_single_podcast, UpdatePodcastRequest};
 use crate::models::{episode, podcast, EpisodeProgress, PodcastStats};
 use crate::models::{Episode, Podcast};
 use crate::player::Player;
 use crate::show_file_in_folder::show_file_in_folder;
 use std::ops::Deref;
 use std::sync::Arc;
+use diesel::{Connection, SqliteConnection};
 use tauri::{AppHandle, Emitter, Manager, Window};
 use uuid::Uuid;
 
@@ -31,27 +32,33 @@ pub async fn sync_podcasts_inner(app: AppHandle, config_wrapper: &ConfigWrapper)
         let mut connection = db_connect();
 
         podcast::sync_podcasts(&mut connection, &app).await.unwrap();
-
-        let sync_state_request = build_backend_sync_request(&mut connection).unwrap();
-        let backend_sync_result = sync_remote_podcasts(&config.access_token, &sync_state_request)
-            .await
-            .unwrap();
-        store_backend_sync_response(&mut connection, backend_sync_result)
-            .await
-            .unwrap();
-
-        app.send_invalidate_cache(EntityChange::AllPodcasts).unwrap();
-        app.send_invalidate_cache(EntityChange::AllEpisodes).unwrap();
-        let podcasts = podcast::list_all(&mut connection).unwrap();
-        for podcast in &podcasts {
-            let _ = app.emit("sync-podcast-stop", podcast.id);
-            app.send_invalidate_cache(EntityChange::Podcast(podcast.id)).unwrap();
-            app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))
-                .unwrap();
-        }
+        sync_to_backend(&config, &mut connection).await.unwrap();
+        invalidate_all_caches(app.clone(), &mut connection).await.unwrap();
+        
         let _ = app.emit("sync-podcasts-done", ());
     });
 
+    Ok(())
+}
+
+pub async fn sync_to_backend(config: &Config, connection: &mut SqliteConnection) -> AppResult<()> {
+    let sync_state_request = build_backend_sync_request(connection)?;
+    let backend_sync_result = sync_remote_podcasts(&config.access_token, &sync_state_request)
+        .await?;
+    store_backend_sync_response(connection, backend_sync_result)
+        .await?;
+    Ok(())
+}
+
+pub async fn invalidate_all_caches(app: AppHandle, connection: &mut SqliteConnection) -> AppResult<()> {
+    app.send_invalidate_cache(EntityChange::AllPodcasts)?;
+    app.send_invalidate_cache(EntityChange::AllEpisodes)?;
+    let podcasts = podcast::list_all(connection)?;
+    for podcast in &podcasts {
+        let _ = app.emit("sync-podcast-stop", podcast.id);
+        app.send_invalidate_cache(EntityChange::Podcast(podcast.id))?;
+        app.send_invalidate_cache(EntityChange::PodcastEpisodes(podcast.id))?;
+    }
     Ok(())
 }
 
@@ -62,11 +69,32 @@ pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, Conf
 
 #[tauri::command]
 pub async fn update_podcast(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>, request: UpdatePodcastRequest) -> AppResult<()> {
-    {
+    let podcast = {
+        let id = request.id;
         let mut connection = db_connect();
         podcast::update_podcast(&mut connection, request)?;
-    }
-    sync_podcasts_inner(app, config_wrapper.deref()).await
+        podcast::find_one(id, &mut connection)?
+    };
+    let config = config_wrapper.0.lock().unwrap().clone();
+    tokio::spawn(async move {
+        sync_single_podcast(app.clone(), podcast).await.unwrap();
+        let mut connection = db_connect();
+        sync_to_backend(&config, &mut connection).await.unwrap();
+        invalidate_all_caches(app.clone(), &mut connection).await.unwrap();
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_podcast(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>, id: i32) -> AppResult<()> {
+    let config = config_wrapper.0.lock().unwrap().clone();
+    tokio::spawn(async move {
+        let mut connection = db_connect();
+        podcast::delete_podcast(&mut connection, id).unwrap();
+        sync_to_backend(&config, &mut connection).await.unwrap();
+        invalidate_all_caches(app, &mut connection).await.unwrap();
+    });
+    Ok(())
 }
 
 #[tauri::command]

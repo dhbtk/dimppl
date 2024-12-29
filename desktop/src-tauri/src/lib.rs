@@ -124,7 +124,8 @@ pub async fn run() {
             commands::erase_episode_download,
             commands::list_all_downloads,
             commands::list_podcast_stats,
-            commands::update_podcast
+            commands::update_podcast,
+            commands::delete_podcast
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
