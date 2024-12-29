@@ -122,7 +122,9 @@ pub async fn run() {
             commands::mark_episode_not_complete,
             commands::show_episode_file_in_folder,
             commands::erase_episode_download,
-            commands::list_all_downloads
+            commands::list_all_downloads,
+            commands::list_podcast_stats,
+            commands::update_podcast
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

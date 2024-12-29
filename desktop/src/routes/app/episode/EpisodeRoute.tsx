@@ -3,7 +3,7 @@ import { episodeRoute } from '../../../routeDefinitions.ts'
 import styled from 'styled-components'
 import { BackButton } from '../podcast/BackButton.tsx'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
-import { episodeDate, formatHumane } from '../../../timeUtil.ts'
+import { formatDate, formatHumane } from '../../../timeUtil.ts'
 import { DownloadEpisodeButton } from '../podcast/DownloadEpisodeButton.tsx'
 import { PlayButton } from '../podcast/PlayButton.tsx'
 import { useQuery } from '@tanstack/react-query'
@@ -85,7 +85,7 @@ export const EpisodeRoute: React.FC = () => {
         <HorizontalInfoList>
           <InfoContainer>
             <InfoHeader>Publicado em</InfoHeader>
-            <InfoData>{episodeDate(episode.episodeDate)}</InfoData>
+            <InfoData>{formatDate(episode.episodeDate)}</InfoData>
           </InfoContainer>
           <InfoContainer>
             <InfoHeader>Duração</InfoHeader>

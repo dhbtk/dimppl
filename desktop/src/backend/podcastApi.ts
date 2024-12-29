@@ -51,6 +51,18 @@ export interface EpisodeWithFileSize extends EpisodeWithPodcast {
   fileSize: number
 }
 
+export interface PodcastWithStats {
+  podcast: Podcast
+  totalEpisodes: number
+  latestEpDate: string
+  lastListenedAt: string | null
+}
+
+export interface PodcastUpdateRequest {
+  id: number
+  url: string
+}
+
 export const podcastApi = {
   listAll: async (): Promise<Podcast[]> => {
     return await invoke<Podcast[]>('list_all_podcasts')
@@ -96,5 +108,11 @@ export const podcastApi = {
   },
   listAllDownloads: async (): Promise<EpisodeWithFileSize[]> => {
     return await invoke<EpisodeWithFileSize[]>('list_all_downloads')
+  },
+  listPodcastStats: async (): Promise<PodcastWithStats[]> => {
+    return await invoke<PodcastWithStats[]>('list_podcast_stats')
+  },
+  updatePodcast: async (request: PodcastUpdateRequest): Promise<void> => {
+    return await invoke<void>('update_podcast', { request })
   }
 }

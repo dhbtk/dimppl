@@ -8,8 +8,8 @@ use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::episode::{EpisodeWithFileSize, EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
-use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response};
-use crate::models::{episode, podcast, EpisodeProgress};
+use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response, UpdatePodcastRequest};
+use crate::models::{episode, podcast, EpisodeProgress, PodcastStats};
 use crate::models::{Episode, Podcast};
 use crate::player::Player;
 use crate::show_file_in_folder::show_file_in_folder;
@@ -24,8 +24,7 @@ pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
     podcast::list_all(&mut connection)
 }
 
-#[tauri::command]
-pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
+pub async fn sync_podcasts_inner(app: AppHandle, config_wrapper: &ConfigWrapper) -> AppResult<()> {
     let config = config_wrapper.0.lock().unwrap().clone();
     let _ = app.emit("sync-podcasts-start", ());
     tokio::spawn(async move {
@@ -54,6 +53,20 @@ pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, Conf
     });
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
+    sync_podcasts_inner(app, config_wrapper.deref()).await
+}
+
+#[tauri::command]
+pub async fn update_podcast(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>, request: UpdatePodcastRequest) -> AppResult<()> {
+    {
+        let mut connection = db_connect();
+        podcast::update_podcast(&mut connection, request)?;
+    }
+    sync_podcasts_inner(app, config_wrapper.deref()).await
 }
 
 #[tauri::command]
@@ -310,4 +323,11 @@ pub fn list_all_downloads() -> AppResult<Vec<EpisodeWithFileSize>> {
     let mut connection = db_connect();
     let downloads = episode::find_all_downloaded(&mut connection)?;
     Ok(downloads)
+}
+
+#[tauri::command]
+pub fn list_podcast_stats() -> AppResult<Vec<PodcastStats>> {
+    let mut connection = db_connect();
+    let stats = podcast::list_podcast_stats(&mut connection)?;
+    Ok(stats)
 }

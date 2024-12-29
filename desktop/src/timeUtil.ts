@@ -30,7 +30,7 @@ export function formatHumane (duration: number): string {
 
 const formatter = new Intl.DateTimeFormat()
 
-export function episodeDate (dateStr: string): string {
+export function formatDate (dateStr: string): string {
   const date = new Date(dateStr)
   return formatter.format(date)
 }

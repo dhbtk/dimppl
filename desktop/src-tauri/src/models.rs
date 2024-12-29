@@ -23,6 +23,15 @@ pub struct Podcast {
     pub updated_at: NaiveDateTime,
 }
 
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PodcastStats {
+    pub podcast: Podcast,
+    pub total_episodes: i32,
+    pub latest_ep_date: NaiveDateTime,
+    pub last_listened_at: Option<NaiveDateTime>
+}
+
 #[derive(Queryable, Selectable, Serialize, Deserialize, Associations, Identifiable, Clone, Debug)]
 #[diesel(table_name = crate::schema::episodes)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]

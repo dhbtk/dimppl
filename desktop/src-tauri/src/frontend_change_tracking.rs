@@ -1,6 +1,7 @@
 use crate::errors::AppResult;
 use tauri::{AppHandle, Emitter};
 
+#[derive(Copy, Debug, Clone)]
 pub enum EntityChange {
     AllPodcasts,
     Podcast(i32),
@@ -11,27 +12,43 @@ pub enum EntityChange {
     AllEpisodes,
 }
 
-impl From<EntityChange> for String {
-    fn from(value: EntityChange) -> Self {
-        match value {
-            EntityChange::AllPodcasts => String::from("allPodcasts"),
-            EntityChange::Podcast(id) => format!("podcast-{id}"),
-            EntityChange::PodcastEpisodes(id) => format!("podcastEpisodes-{id}"),
-            EntityChange::Episode(id) => format!("episode-{id}"),
-            EntityChange::EpisodeProgress(id) => format!("episodeProgress-{id}"),
-            EntityChange::AllDownloads => "allDownloads".to_string(),
-            EntityChange::AllEpisodes => "allEpisodes".to_string(),
+impl EntityChange {
+    pub fn cache_strings(&self) -> Vec<String> {
+        match self {
+            EntityChange::AllPodcasts => {
+                vec![String::from("allPodcasts"), String::from("podcastStats")]
+            }
+            EntityChange::Podcast(id) => {
+                vec![format!("podcast-{id}"), String::from("podcastStats")]
+            }
+            EntityChange::PodcastEpisodes(id) => {
+                vec![format!("podcast-{id}"), String::from("podcastStats")]
+            }
+            EntityChange::Episode(id) => {
+                vec![format!("episode-{id}"), String::from("podcastStats")]
+            }
+            EntityChange::EpisodeProgress(id) => {
+                vec![format!("episodeProgress-{id}")]
+            }
+            EntityChange::AllDownloads => {
+                vec![String::from("allDownloads")]
+            }
+            EntityChange::AllEpisodes => {
+                vec![String::from("allEpisodes")]
+            }
         }
     }
 }
 
 pub trait AppHandleExt {
-    fn send_invalidate_cache(&self, key: impl Into<String>) -> AppResult<()>;
+    fn send_invalidate_cache(&self, key: EntityChange) -> AppResult<()>;
 }
 
 impl AppHandleExt for AppHandle {
-    fn send_invalidate_cache(&self, key: impl Into<String>) -> AppResult<()> {
-        self.emit("invalidate-cache", key.into())?;
+    fn send_invalidate_cache(&self, key: EntityChange) -> AppResult<()> {
+        for key in key.cache_strings() {
+            self.emit("invalidate-cache", key)?;
+        }
         Ok(())
     }
 }

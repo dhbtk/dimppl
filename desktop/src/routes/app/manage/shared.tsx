@@ -9,6 +9,7 @@ export const NoScrollContainer = styled.div`
   display: flex;
   flex-direction: column;
   max-height: 100%;
+  height: 100%;
 `
 
 const ToolbarContainer = styled.div`
@@ -117,4 +118,5 @@ export const TableContainer = styled.div`
   overflow-y: auto;
   flex: 1;
   padding: 8px;
+  margin-bottom: 48px;
 `

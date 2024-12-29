@@ -8,4 +8,9 @@ export const PrettyButton = styled.button`
   border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.7);
   color: #FFF;
+  
+  &[disabled] {
+    background: var(--gray50);
+    cursor: not-allowed;
+  }
 `

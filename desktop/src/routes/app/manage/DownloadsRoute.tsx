@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { podcastApi } from '../../../backend/podcastApi.ts'
 import { downloadsRoute } from '../../../routeDefinitions.ts'
 import { formatBytes } from '../../../formatUtil.ts'
-import { episodeDate } from '../../../timeUtil.ts'
+import { formatDate } from '../../../timeUtil.ts'
 import { contextMenu } from '../../../backend/contextMenu.ts'
 
 export const DownloadsRoute: React.FC = () => {
@@ -39,7 +39,7 @@ export const DownloadsRoute: React.FC = () => {
                 {row.podcast.name}
               </td>
               <td className="tiny">
-                {row.progress.listenedSeconds !== 0 ? episodeDate(row.progress.updatedAt) : '-'}
+                {row.progress.listenedSeconds !== 0 ? formatDate(row.progress.updatedAt) : '-'}
               </td>
               <td className="tiny">{formatBytes(row.fileSize, 2)}</td>
             </tr>

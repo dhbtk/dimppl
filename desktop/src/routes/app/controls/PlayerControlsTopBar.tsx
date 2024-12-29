@@ -5,7 +5,7 @@ import { ToolbarIconButton } from './ToolbarIconButton.tsx'
 import { podcastApi } from '../../../backend/podcastApi.ts'
 import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { VolumeSlider } from './VolumeSlider.tsx'
-import { episodeDate, formatHms, ratio } from '../../../timeUtil.ts'
+import { formatDate, formatHms, ratio } from '../../../timeUtil.ts'
 
 const TopBar = styled.div`
   height: 48px;
@@ -117,7 +117,7 @@ export const PlayerControlsTopBar: React.FC = () => {
               <p style={{ color: 'var(--gray50)' }}>
                 {playerStatus.podcast?.name}
                 {' — '}
-                {episodeDate(playerStatus.episode.episodeDate)}
+                {formatDate(playerStatus.episode.episodeDate)}
               </p>
               <p className="left">{formatHms(playerStatus.elapsed)}</p>
               <p className="right">{formatHms(playerStatus.duration)}</p>

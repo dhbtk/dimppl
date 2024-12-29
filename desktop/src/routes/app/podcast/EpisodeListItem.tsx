@@ -5,7 +5,7 @@ import { podcastUtil } from '../../../backend/podcastUtil.ts'
 import { IconButton } from '../IconButton.tsx'
 import styled from 'styled-components'
 import { Link } from '@tanstack/react-router'
-import { episodeDate, formatHumane, ratio } from '../../../timeUtil.ts'
+import { formatDate, formatHumane, ratio } from '../../../timeUtil.ts'
 import { PlayButton } from './PlayButton.tsx'
 import { DownloadEpisodeButton } from './DownloadEpisodeButton.tsx'
 import { episodeRoute, podcastRoute } from '../../../routeDefinitions.ts'
@@ -139,7 +139,7 @@ export const EpisodeListItem: React.FC<{
                               dangerouslySetInnerHTML={{ __html: episode.description }}/>
           <EpisodeControls>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <DateDisplay>{episodeDate(episode.episodeDate)}</DateDisplay>
+              <DateDisplay>{formatDate(episode.episodeDate)}</DateDisplay>
               {episode.contentLocalPath.length === 0 ? (
                 <DownloadEpisodeButton episode={episode}/>
               ) : (

@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-use std::fs::File;
-use std::path::PathBuf;
-use std::time::Duration;
 use crate::database::db_connect;
 use anyhow::Context;
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -13,13 +9,18 @@ use futures::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
+use std::collections::HashMap;
+use std::fs::File;
+use std::path::PathBuf;
+use std::time::Duration;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
 use crate::directories::images_dir;
 use crate::errors::AppResult;
 use crate::models::episode::list_for_podcast;
-use crate::models::{Episode, EpisodeProgress, Podcast};
+use crate::models::{episode, Episode, EpisodeProgress, Podcast, PodcastStats};
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     use crate::schema::podcasts::dsl::*;
@@ -37,6 +38,32 @@ pub fn find_one_by_guid(guid_value: &str, conn: &mut SqliteConnection) -> AppRes
     use crate::schema::podcasts::dsl::*;
     let results = podcasts.filter(guid.eq(guid_value)).first(conn)?;
     Ok(results)
+}
+
+pub fn list_podcast_stats(conn: &mut SqliteConnection) -> AppResult<Vec<PodcastStats>> {
+    let podcasts = list_all(conn)?;
+    let mut stats_list = Vec::with_capacity(podcasts.len());
+    for podcast in podcasts {
+        let episodes = list_for_podcast(podcast.id, conn)?;
+        let latest_ep_date = episodes
+            .iter()
+            .max_by(|a, b| a.episode.episode_date.cmp(&b.episode.episode_date))
+            .map(|i| i.episode.episode_date)
+            .unwrap_or(Default::default());
+        let last_listened_at = episodes
+            .iter()
+            .filter(|it| it.progress.listened_seconds > 0)
+            .max_by(|a, b| a.progress.updated_at.cmp(&b.progress.updated_at))
+            .map(|i| i.progress.updated_at);
+
+        stats_list.push(PodcastStats {
+            podcast,
+            total_episodes: episodes.len() as i32,
+            latest_ep_date,
+            last_listened_at,
+        });
+    }
+    Ok(stats_list)
 }
 
 pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -> AppResult<Podcast> {
@@ -78,6 +105,31 @@ pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -
     }
     Ok(inserted_podcast)
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdatePodcastRequest {
+    pub id: i32,
+    pub url: String
+}
+
+pub fn update_podcast(conn: &mut SqliteConnection, request: UpdatePodcastRequest) -> AppResult<()> {
+    use crate::schema::podcasts::dsl::*;
+    update(podcasts)
+        .set((feed_url.eq(request.url), updated_at.eq(Utc::now().naive_utc())))
+        .filter(id.eq(request.id))
+        .execute(conn)?;
+    Ok(())
+}
+// 
+// pub fn delete_podcast(conn: &mut SqliteConnection, podcast_id: i32) -> AppResult<()> {
+//     use crate::schema::podcasts::dsl::*;
+//     update(podcasts)
+//         .set(deleted_at.eq(Utc::now().naive_utc()))
+//         .filter(id.eq(podcast_id))
+//         .execute(conn)?;
+//     Ok(())
+// }
 
 pub async fn sync_podcasts(conn: &mut SqliteConnection, app_handle: &AppHandle) -> AppResult<()> {
     let podcasts = list_all(conn)?
@@ -156,7 +208,10 @@ async fn sync_single_podcast_inner(podcast: Podcast) -> AppResult<()> {
                 .execute(&mut conn)?;
         }
     }
-    tracing::debug!("Finished with podcast {}: {new_episodes} new episodes out of {total_episodes}", podcast.name);
+    tracing::debug!(
+        "Finished with podcast {}: {new_episodes} new episodes out of {total_episodes}",
+        podcast.name
+    );
     Ok(())
 }
 
@@ -228,7 +283,14 @@ pub fn build_backend_sync_request(conn: &mut SqliteConnection) -> AppResult<Sync
 }
 
 pub async fn download_rss_feed(url: String, identifier: Option<String>) -> AppResult<ParsedPodcast> {
-    let content = reqwest::Client::builder().timeout(Duration::from_secs(30)).build()?.get(url).send().await?.bytes().await?;
+    let content = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()?
+        .get(url)
+        .send()
+        .await?
+        .bytes()
+        .await?;
     let channel = Channel::read_from(&content[..])?;
     let podcast = ParsedPodcast::from_channel(channel, identifier).await?;
     Ok(podcast)
