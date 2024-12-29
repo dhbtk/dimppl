@@ -1,5 +1,5 @@
 use crate::database::db_connect;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::associations::HasTable;
 use diesel::prelude::*;
@@ -193,32 +193,32 @@ async fn sync_single_podcast_inner(podcast: Podcast) -> AppResult<()> {
                 .filter(guid.eq(episode.guid.clone()))
                 .first::<Episode>(&mut conn)
         };
-        let episode_id: i32 = if let Ok(episode_record) = result {
+        let episode_record: Episode = if let Ok(episode_record) = result {
             use crate::schema::episodes::dsl::*;
             update(episodes)
-                .set(content_url.eq(episode.content_url.clone()))
+                .set((content_url.eq(episode.content_url.clone()), image_url.eq(episode.image_url.clone())))
                 .filter(id.eq(episode_record.id))
-                .returning(id)
+                .returning(Episode::as_returning())
                 .get_result(&mut conn)?
         } else {
             new_episodes += 1;
             use crate::schema::episodes::dsl::*;
             insert_into(episodes::table())
                 .values(NewEpisode::from_parsed(episode, podcast.id))
-                .returning(id)
+                .returning(Episode::as_returning())
                 .get_result(&mut conn)?
         };
         let existing_progress_id: Option<i32> = {
             use crate::schema::episode_progresses::dsl;
             dsl::episode_progresses
-                .filter(dsl::episode_id.eq(episode_id))
+                .filter(dsl::episode_id.eq(episode_record.id))
                 .select(dsl::id)
                 .first(&mut conn)
                 .optional()?
         };
         if existing_progress_id.is_none() {
             let new_progress = NewProgress {
-                episode_id,
+                episode_id: episode_record.id,
                 completed: false,
                 listened_seconds: 0,
                 updated_at: Utc::now().naive_utc(),
@@ -226,6 +226,16 @@ async fn sync_single_podcast_inner(podcast: Podcast) -> AppResult<()> {
             insert_into(EpisodeProgress::table())
                 .values(new_progress)
                 .execute(&mut conn)?;
+        }
+        if episode_record.image_local_path.is_empty() && !episode_record.image_url.is_empty() {
+            let image_path = download_image(&episode_record.image_url, format!("episode-{}", episode_record.id).as_str()).await;
+            if let Ok(image_path) = image_path {
+                diesel::update(Episode::table()).set(crate::schema::episodes::dsl::image_local_path.eq(image_path))
+                    .filter(crate::schema::episodes::dsl::id.eq(episode_record.id))
+                    .execute(&mut conn)?;
+            } else {
+                tracing::info!("Could not download episode image. Podcast=\"{}\" Episode=\"{}\" {:?}", podcast.name, episode_record.title, image_path);
+            }
         }
     }
     tracing::debug!(
@@ -468,6 +478,9 @@ impl ParsedPodcast {
 
 async fn download_image(image_url: &str, identifier: &str) -> AppResult<String> {
     let response = reqwest::get(image_url).await?;
+    if !response.status().is_success() {
+        return Err(anyhow!("Failed to download image: {}", response.status()).into())
+    }
     let extension = response
         .url()
         .path_segments()
@@ -476,6 +489,7 @@ async fn download_image(image_url: &str, identifier: &str) -> AppResult<String> 
         .and_then(|i| i.into_string().ok())
         .unwrap_or("jpg".into());
     let filename = format!("podcastImage-{identifier}.{extension}");
+    tracing::debug!("saving image: {filename}");
     let file_path = images_dir().join(filename);
     let path_string = file_path.clone().into_os_string().into_string().unwrap();
     let mut tokio_file = tokio::fs::File::from(File::create(file_path)?);

@@ -122,7 +122,7 @@ export const EpisodeListItem: React.FC<{
       contextMenu.podcastEpisode(episode.id)
       e.preventDefault()
     }}>
-      <EpisodeImageBox url={episode.imageUrl || podcastUtil.imageUrl(podcast)}/>
+      <EpisodeImageBox url={podcastUtil.episodeImage(episode, podcast)}/>
       <EpisodeInfoBox>
         <EpisodeLink to={episodeRoute.to} search={{}} params={{ episodeId: episode.id.toString() }}
                      title={episode.title}>

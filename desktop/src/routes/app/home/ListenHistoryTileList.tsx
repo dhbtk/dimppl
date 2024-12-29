@@ -60,7 +60,7 @@ const EpisodeTile: React.FC<{ data: EpisodeWithPodcast }> = ({ data }) => {
   const { episode, podcast, progress } = data
   return (
     <TileWrapper>
-      <BigImage url={episode.imageUrl || podcastUtil.imageUrl(podcast)}/>
+      <BigImage url={podcastUtil.episodeImage(episode, podcast)}/>
       <TileLink title={episode.title} to={`episode/${episode.id}`} search={{}} params={{}}>{episode.title}</TileLink>
       <DateDisplay>
         {

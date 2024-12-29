@@ -109,7 +109,7 @@ export const PlayerControlsTopBar: React.FC = () => {
       </ContentAligner>
       {(playerStatus.episode === null || playerStatus.episode === undefined) ? <DisplayIsland/> : (
         <DisplayIsland>
-          <ImageBox url={playerStatus.episode.imageUrl || podcastUtil.imageUrl(playerStatus.podcast!)}/>
+          <ImageBox url={podcastUtil.episodeImage(playerStatus.episode!, playerStatus.podcast!)}/>
           <RightSide>
             <TextBox>
               <p

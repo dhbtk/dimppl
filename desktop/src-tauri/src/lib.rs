@@ -12,7 +12,7 @@ use crate::database::{database_path, db_connect, prepare_database};
 use crate::directories::ensure_data_dir;
 use crate::main_menu::{build_main_menu, main_menu_event_handler, MainMenuOption};
 use crate::models::episode_downloads::EpisodeDownloads;
-use crate::models::podcast;
+use crate::models::{episode, podcast};
 use crate::player::Player;
 use tauri::Manager;
 use tracing::Level;
@@ -64,6 +64,13 @@ pub async fn run() {
                 let podcast_id: i32 = uri_str.strip_prefix("localimages://podcast/").unwrap().parse().unwrap();
                 let podcast = podcast::find_one(podcast_id, &mut conn).unwrap();
                 let path = PathBuf::from(podcast.local_image_path);
+                if path.exists() {
+                    return Response::builder().status(200).body(fs::read(path).unwrap()).unwrap();
+                }
+            } else if uri_str.starts_with("localimages://episode/") {
+                let episode_id: i32 = uri_str.strip_prefix("localimages://episode/").unwrap().parse().unwrap();
+                let episode = episode::find_one(episode_id, &mut conn).unwrap();
+                let path = PathBuf::from(episode.image_local_path);
                 if path.exists() {
                     return Response::builder().status(200).body(fs::read(path).unwrap()).unwrap();
                 }
