@@ -25,7 +25,7 @@ impl EpisodeDownloads {
 
     pub async fn in_progress(&self) -> HashMap<i32, EpisodeDownloadProgress> {
         let map = self.in_progress.read().await;
-        return map.deref().clone();
+        map.deref().clone()
     }
 
     pub async fn set_progress(&self, episode: &Episode, progress: EpisodeDownloadProgress) {

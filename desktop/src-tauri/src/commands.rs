@@ -8,14 +8,16 @@ use crate::errors::AppResult;
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::episode::{EpisodeWithFileSize, EpisodeWithPodcast, EpisodeWithProgress};
 use crate::models::episode_downloads::EpisodeDownloads;
-use crate::models::podcast::{build_backend_sync_request, store_backend_sync_response, sync_single_podcast, UpdatePodcastRequest};
+use crate::models::podcast::{
+    build_backend_sync_request, store_backend_sync_response, sync_single_podcast, UpdatePodcastRequest,
+};
 use crate::models::{episode, podcast, EpisodeProgress, PodcastStats};
 use crate::models::{Episode, Podcast};
 use crate::player::Player;
 use crate::show_file_in_folder::show_file_in_folder;
+use diesel::SqliteConnection;
 use std::ops::Deref;
 use std::sync::Arc;
-use diesel::{Connection, SqliteConnection};
 use tauri::{AppHandle, Emitter, Manager, Window};
 use uuid::Uuid;
 
@@ -43,10 +45,8 @@ pub async fn sync_podcasts_inner(app: AppHandle, config_wrapper: &ConfigWrapper)
 
 pub async fn sync_to_backend(config: &Config, connection: &mut SqliteConnection) -> AppResult<()> {
     let sync_state_request = build_backend_sync_request(connection)?;
-    let backend_sync_result = sync_remote_podcasts(&config.access_token, &sync_state_request)
-        .await?;
-    store_backend_sync_response(connection, backend_sync_result)
-        .await?;
+    let backend_sync_result = sync_remote_podcasts(&config.access_token, &sync_state_request).await?;
+    store_backend_sync_response(connection, backend_sync_result).await?;
     Ok(())
 }
 
@@ -68,7 +68,11 @@ pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, Conf
 }
 
 #[tauri::command]
-pub async fn update_podcast(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>, request: UpdatePodcastRequest) -> AppResult<()> {
+pub async fn update_podcast(
+    app: AppHandle,
+    config_wrapper: tauri::State<'_, ConfigWrapper>,
+    request: UpdatePodcastRequest,
+) -> AppResult<()> {
     let podcast = {
         let id = request.id;
         let mut connection = db_connect();

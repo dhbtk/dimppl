@@ -30,7 +30,7 @@ pub struct PodcastStats {
     pub podcast: Podcast,
     pub total_episodes: i32,
     pub latest_ep_date: NaiveDateTime,
-    pub last_listened_at: Option<NaiveDateTime>
+    pub last_listened_at: Option<NaiveDateTime>,
 }
 
 #[derive(Queryable, Selectable, Serialize, Deserialize, Associations, Identifiable, Clone, Debug)]

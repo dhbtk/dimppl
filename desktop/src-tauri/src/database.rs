@@ -1,14 +1,13 @@
 use crate::directories::project_dirs;
+use diesel::connection::SimpleConnection;
+use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::sqlite::Sqlite;
-use diesel::{Connection, SqliteConnection};
+use diesel::SqliteConnection;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use std::error::Error;
 use std::ops::Deref;
 use std::sync::LazyLock;
-use std::thread::sleep;
 use std::time::Duration;
-use diesel::connection::SimpleConnection;
-use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 
 #[derive(Debug)]
 pub struct ConnectionOptions {
@@ -17,9 +16,7 @@ pub struct ConnectionOptions {
     pub busy_timeout: Option<Duration>,
 }
 
-impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
-for ConnectionOptions
-{
+impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for ConnectionOptions {
     fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
         (|| {
             if self.enable_wal {
@@ -33,7 +30,7 @@ for ConnectionOptions
             }
             Ok(())
         })()
-            .map_err(diesel::r2d2::Error::QueryError)
+        .map_err(diesel::r2d2::Error::QueryError)
     }
 }
 

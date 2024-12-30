@@ -9,11 +9,11 @@ use futures::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rfc822_sanitizer::parse_from_rfc2822_with_fallback;
 use rss::{Channel, Item};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 use std::time::Duration;
-use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
@@ -24,7 +24,11 @@ use crate::models::{episode, Episode, EpisodeProgress, Podcast, PodcastStats};
 
 pub fn list_all(conn: &mut SqliteConnection) -> AppResult<Vec<Podcast>> {
     use crate::schema::podcasts::dsl::*;
-    let results = podcasts.filter(deleted_at.is_null()).order_by(name.asc()).select(Podcast::as_select()).load(conn)?;
+    let results = podcasts
+        .filter(deleted_at.is_null())
+        .order_by(name.asc())
+        .select(Podcast::as_select())
+        .load(conn)?;
     Ok(results)
 }
 
@@ -110,14 +114,14 @@ pub async fn import_podcast_from_url(url: String, conn: &mut SqliteConnection) -
 #[serde(rename_all = "camelCase")]
 pub struct UpdatePodcastRequest {
     pub id: i32,
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PodcastSyncError {
     pub id: i32,
-    pub error: String
+    pub error: String,
 }
 
 pub fn update_podcast(conn: &mut SqliteConnection, request: UpdatePodcastRequest) -> AppResult<()> {
@@ -167,7 +171,13 @@ pub async fn sync_single_podcast(app_handle: AppHandle, podcast: Podcast) -> App
     let result = sync_single_podcast_inner(podcast).await;
     if let Err(result) = result {
         tracing::info!("Error syncing podcast {}: {:?}", name, result);
-        let _ = app_handle.emit("sync-podcast-error", PodcastSyncError { id, error: result.to_string() });
+        let _ = app_handle.emit(
+            "sync-podcast-error",
+            PodcastSyncError {
+                id,
+                error: result.to_string(),
+            },
+        );
     }
     let _ = app_handle.emit("sync-podcast-stop", id);
     Ok(())
@@ -196,7 +206,10 @@ async fn sync_single_podcast_inner(podcast: Podcast) -> AppResult<()> {
         let episode_record: Episode = if let Ok(episode_record) = result {
             use crate::schema::episodes::dsl::*;
             update(episodes)
-                .set((content_url.eq(episode.content_url.clone()), image_url.eq(episode.image_url.clone())))
+                .set((
+                    content_url.eq(episode.content_url.clone()),
+                    image_url.eq(episode.image_url.clone()),
+                ))
                 .filter(id.eq(episode_record.id))
                 .returning(Episode::as_returning())
                 .get_result(&mut conn)?
@@ -228,13 +241,23 @@ async fn sync_single_podcast_inner(podcast: Podcast) -> AppResult<()> {
                 .execute(&mut conn)?;
         }
         if episode_record.image_local_path.is_empty() && !episode_record.image_url.is_empty() {
-            let image_path = download_image(&episode_record.image_url, format!("episode-{}", episode_record.id).as_str()).await;
+            let image_path = download_image(
+                &episode_record.image_url,
+                format!("episode-{}", episode_record.id).as_str(),
+            )
+            .await;
             if let Ok(image_path) = image_path {
-                diesel::update(Episode::table()).set(crate::schema::episodes::dsl::image_local_path.eq(image_path))
+                diesel::update(Episode::table())
+                    .set(crate::schema::episodes::dsl::image_local_path.eq(image_path))
                     .filter(crate::schema::episodes::dsl::id.eq(episode_record.id))
                     .execute(&mut conn)?;
             } else {
-                tracing::info!("Could not download episode image. Podcast=\"{}\" Episode=\"{}\" {:?}", podcast.name, episode_record.title, image_path);
+                tracing::info!(
+                    "Could not download episode image. Podcast=\"{}\" Episode=\"{}\" {:?}",
+                    podcast.name,
+                    episode_record.title,
+                    image_path
+                );
             }
         }
     }
@@ -479,7 +502,7 @@ impl ParsedPodcast {
 async fn download_image(image_url: &str, identifier: &str) -> AppResult<String> {
     let response = reqwest::get(image_url).await?;
     if !response.status().is_success() {
-        return Err(anyhow!("Failed to download image: {}", response.status()).into())
+        return Err(anyhow!("Failed to download image: {}", response.status()).into());
     }
     let extension = response
         .url()

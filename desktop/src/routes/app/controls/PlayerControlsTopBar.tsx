@@ -83,18 +83,6 @@ const TextBox = styled.div`
   }
 `
 
-const ProgressBarContainer = styled.div`
-  height: 3px;
-  flex-shrink: 0;
-  background-color: var(--gray12);
-`
-
-const ProgressBar = styled.div<{ percent: string }>`
-  height: 3px;
-  width: ${props => props.percent};
-  background-color: var(--gray05);
-`
-
 const ProgressBarInput = styled.input<{ width: string }>`
   appearance: none;
   -webkit-appearance: none;

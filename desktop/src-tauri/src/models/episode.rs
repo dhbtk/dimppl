@@ -155,8 +155,8 @@ pub fn find_last_played(conn: &mut SqliteConnection) -> Option<EpisodeWithPodcas
 pub fn list_listen_history(conn: &mut SqliteConnection) -> AppResult<Vec<EpisodeWithPodcast>> {
     use crate::schema::episode_progresses::dsl::*;
     use crate::schema::episodes::dsl::*;
-    use crate::schema::podcasts::dsl::podcasts;
     use crate::schema::podcasts::deleted_at;
+    use crate::schema::podcasts::dsl::podcasts;
     let results = episodes
         .inner_join(episode_progresses)
         .inner_join(podcasts)
@@ -179,8 +179,8 @@ pub fn list_listen_history(conn: &mut SqliteConnection) -> AppResult<Vec<Episode
 pub fn list_latest_episodes(conn: &mut SqliteConnection) -> AppResult<Vec<EpisodeWithPodcast>> {
     use crate::schema::episode_progresses::dsl::*;
     use crate::schema::episodes::dsl::*;
-    use crate::schema::podcasts::dsl::podcasts;
     use crate::schema::podcasts::deleted_at;
+    use crate::schema::podcasts::dsl::podcasts;
     let results = episodes
         .inner_join(episode_progresses)
         .inner_join(podcasts)
@@ -284,7 +284,10 @@ pub async fn start_download(
             progress_indicator
                 .set_progress(&episode, EpisodeDownloadProgress::new(downloaded, total_length))
                 .await;
-            tracing::debug!("progress: {downloaded}/{total_length} ({}%)", (downloaded as f64 / total_length as f64) * 100.0);
+            tracing::debug!(
+                "progress: {downloaded}/{total_length} ({}%)",
+                (downloaded as f64 / total_length as f64) * 100.0
+            );
             event_emit_ts = Instant::now();
         }
     }
