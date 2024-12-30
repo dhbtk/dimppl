@@ -187,7 +187,7 @@ pub fn list_latest_episodes(conn: &mut SqliteConnection) -> AppResult<Vec<Episod
         .order_by(episode_date.desc())
         .select((EpisodeProgress::as_select(), Episode::as_select(), Podcast::as_select()))
         .filter(deleted_at.is_null())
-        .limit(100)
+        .limit(15)
         .load::<(EpisodeProgress, Episode, Podcast)>(conn)?
         .into_iter()
         .map(|(progress, episode, podcast)| EpisodeWithPodcast {
