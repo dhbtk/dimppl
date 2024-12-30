@@ -105,6 +105,9 @@ export const podcastApi = {
   playerAction: async (action: 'play' | 'pause' | 'skip_forwards' | 'skip_backwards'): Promise<void> => {
     return await invoke<void>('player_action', { action })
   },
+  seek: async (to: number): Promise<void> => {
+    return await invoke<void>('seek', { to })
+  },
   getProgressForEpisode: async (episodeId: number): Promise<EpisodeProgress> => {
     return await invoke<EpisodeProgress>('find_progress_for_episode', { episodeId })
   },

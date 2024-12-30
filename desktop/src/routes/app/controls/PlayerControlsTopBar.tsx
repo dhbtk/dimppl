@@ -48,6 +48,7 @@ const RightSide = styled.div`
   display: flex;
   flex: 1;
   flex-direction: column;
+  position: relative;
 `
 
 const TextBox = styled.div`
@@ -94,6 +95,34 @@ const ProgressBar = styled.div<{ percent: string }>`
   background-color: var(--gray05);
 `
 
+const ProgressBarInput = styled.input<{ width: string }>`
+  appearance: none;
+  -webkit-appearance: none;
+  height: 3px;
+  background-size: ${props => props.width} 100%;
+  background: var(--gray05) linear-gradient(var(--gray25), var(--gray25)) no-repeat;
+  width: 100%;
+  display: block;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 9px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--primary-lightest);
+    bottom: 0;
+    translate: 0 -1px;
+  }
+
+  &::-webkit-slider-runnable-track {
+    width: ${props => props.width};
+    -webkit-appearance: none;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+  }
+`
+
 export const PlayerControlsTopBar: React.FC = () => {
   const playerStatus = useContext(PlayerContext)
   return (
@@ -122,9 +151,18 @@ export const PlayerControlsTopBar: React.FC = () => {
               <p className="left">{formatHms(playerStatus.elapsed)}</p>
               <p className="right">{formatHms(playerStatus.duration)}</p>
             </TextBox>
-            <ProgressBarContainer>
-              <ProgressBar percent={ratio(playerStatus.elapsed, playerStatus.duration)}/>
-            </ProgressBarContainer>
+            {/*<ProgressBarContainer>*/}
+            {/*  <ProgressBar percent={ratio(playerStatus.elapsed, playerStatus.duration)}/>*/}
+            {/*</ProgressBarContainer>*/}
+            <ProgressBarInput
+              type="range"
+              width={ratio(playerStatus.elapsed, playerStatus.duration)}
+              min={0}
+              max={playerStatus.duration}
+              value={playerStatus.elapsed}
+              step={1}
+              onChange={e => podcastApi.seek(parseInt(e.currentTarget.value, 10))}
+            />
           </RightSide>
         </DisplayIsland>
       )}

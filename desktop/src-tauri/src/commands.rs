@@ -34,7 +34,7 @@ pub async fn sync_podcasts_inner(app: AppHandle, config_wrapper: &ConfigWrapper)
         podcast::sync_podcasts(&mut connection, &app).await.unwrap();
         sync_to_backend(&config, &mut connection).await.unwrap();
         invalidate_all_caches(app.clone(), &mut connection).await.unwrap();
-        
+
         let _ = app.emit("sync-podcasts-done", ());
     });
 
