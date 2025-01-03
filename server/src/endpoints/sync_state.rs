@@ -43,7 +43,7 @@ mod tests {
     use crate::models::user_device::test_user_and_device;
     use axum::http;
     use axum::http::{Request, StatusCode};
-    use chrono::{Local, NaiveDateTime};
+    use chrono::Local;
     use dimppl_shared::sync::{SyncPodcast, SyncPodcastEpisode};
     use hyper::Body;
     use serial_test::serial;

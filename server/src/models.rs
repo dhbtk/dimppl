@@ -1,6 +1,7 @@
 pub mod podcast;
 pub mod user;
 pub mod user_device;
+pub mod episode;
 
 use diesel::prelude::*;
 

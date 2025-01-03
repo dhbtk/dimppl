@@ -1,7 +1,7 @@
 use crate::database::AsyncConnection;
 use crate::error_handling::AppResult;
 use crate::models::{Podcast, PodcastEpisode, User};
-use chrono::NaiveDateTime;
+use chrono::{Local, NaiveDateTime};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use dimppl_shared::sync::{
@@ -73,7 +73,7 @@ pub async fn create<'a>(
             user_id.eq(create_request.user_id),
             url.eq(&create_request.url),
             guid.eq(&create_request.guid),
-            updated_at.eq(NaiveDateTime::from_timestamp_opt(0, 0).unwrap()),
+            updated_at.eq(NaiveDateTime::default()),
         ))
         .returning(Podcast::as_returning())
         .get_result(conn)
@@ -87,7 +87,7 @@ pub async fn create<'a>(
                 guid.eq(&episode_request.guid),
                 listened_seconds.eq(0),
                 completed.eq(false),
-                updated_at.eq(NaiveDateTime::from_timestamp_opt(0, 0).unwrap()),
+                updated_at.eq(NaiveDateTime::default()),
             ))
             .execute(conn)
             .await?;
@@ -202,6 +202,48 @@ pub async fn get_sync_response<'a>(
     })
 }
 
+pub async fn test_podcast_with_episodes<'a>(user: &User, conn: &mut AsyncConnection<'a>) -> AppResult<(Podcast, Vec<PodcastEpisode>)> {
+    let podcast_instance: Podcast = {
+        use crate::schema::podcasts::dsl::*;
+        diesel::insert_into(podcasts)
+            .values((
+                user_id.eq(user.id),
+                url.eq("https://google.com"),
+                guid.eq("guid"),
+                updated_at.eq(Local::now().naive_utc()),
+            ))
+            .returning(Podcast::as_returning())
+            .get_result(conn)
+            .await?
+    };
+    let episodes = {
+        use crate::schema::podcast_episodes::dsl::*;
+        diesel::insert_into(podcast_episodes)
+            .values(&[
+                (
+                    podcast_id.eq(podcast_instance.id),
+                    guid.eq("ep1"),
+                    url.eq("https://ep1"),
+                    listened_seconds.eq(300),
+                    completed.eq(true),
+                    updated_at.eq(Local::now().naive_utc()),
+                ),
+                (
+                    podcast_id.eq(podcast_instance.id),
+                    guid.eq("ep2"),
+                    url.eq("https://ep2"),
+                    listened_seconds.eq(0),
+                    completed.eq(false),
+                    updated_at.eq(NaiveDateTime::default()),
+                ),
+            ])
+            .returning(PodcastEpisode::as_returning())
+            .load(conn)
+            .await?
+    };
+    Ok((podcast_instance, episodes))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::app::create_test_app;
@@ -248,7 +290,7 @@ mod tests {
                 user_id.eq(user.id),
                 url.eq("https://google.com"),
                 guid.eq("guid"),
-                updated_at.eq(NaiveDateTime::from_timestamp_opt(0, 0).unwrap()),
+                updated_at.eq(NaiveDateTime::default()),
             ))
             .returning(Podcast::as_returning())
             .get_result(&mut conn)
@@ -322,46 +364,7 @@ mod tests {
         let (state, _) = create_test_app();
         let mut conn = state.pool.get().await.unwrap();
         let (user, _device) = test_user_and_device(&mut conn).await.unwrap();
-        let existing_podcast: Podcast = {
-            use crate::schema::podcasts::dsl::*;
-            diesel::insert_into(podcasts)
-                .values((
-                    user_id.eq(user.id),
-                    url.eq("https://google.com"),
-                    guid.eq("guid"),
-                    updated_at.eq(Local::now().naive_utc()),
-                ))
-                .returning(Podcast::as_returning())
-                .get_result(&mut conn)
-                .await
-                .unwrap()
-        };
-        let _episodes = {
-            use crate::schema::podcast_episodes::dsl::*;
-            diesel::insert_into(podcast_episodes)
-                .values(&[
-                    (
-                        podcast_id.eq(existing_podcast.id),
-                        guid.eq("ep1"),
-                        url.eq("https://ep1"),
-                        listened_seconds.eq(300),
-                        completed.eq(true),
-                        updated_at.eq(Local::now().naive_utc()),
-                    ),
-                    (
-                        podcast_id.eq(existing_podcast.id),
-                        guid.eq("ep2"),
-                        url.eq("https://ep2"),
-                        listened_seconds.eq(0),
-                        completed.eq(false),
-                        updated_at.eq(NaiveDateTime::default()),
-                    ),
-                ])
-                .returning(PodcastEpisode::as_returning())
-                .execute(&mut conn)
-                .await
-                .unwrap()
-        };
+        let (existing_podcast, _) = test_podcast_with_episodes(&user, &mut conn).await.unwrap();
         let episodes = vec![
             SyncPodcastEpisode {
                 guid: "ep1".into(),
