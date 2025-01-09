@@ -25,14 +25,15 @@ use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, Track};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
 use symphonia::core::units::{Time, TimeStamp};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::time::Instant;
-
+use dimppl_shared::progress::ProgressUpdateRequest;
 use crate::database::db_connect;
 use crate::errors::{AppError, AppResult};
 use crate::frontend_change_tracking::{AppHandleExt, EntityChange};
 use crate::models::{podcast, Episode, EpisodeProgress, Podcast};
 use crate::player::{output, PlayerStatus};
+use crate::progress_updater::ProgressUpdater;
 
 #[derive(Clone)]
 pub struct NewPlayer {
@@ -268,7 +269,7 @@ impl NewPlayer {
     ) -> PlayerStatus {
         if save_progress && episode_container.is_some() {
             use crate::schema::episode_progresses::dsl::*;
-            let (episode, _) = episode_container.clone().unwrap();
+            let (episode, podcast) = episode_container.clone().unwrap();
             let elapsed_seconds = elapsed / 1000;
             let completed_listening = (episode.length as i64) - elapsed_seconds < 300; // 5 minutes
             let mut conn = db_connect();
@@ -277,12 +278,13 @@ impl NewPlayer {
                 elapsed_seconds,
                 episode.id
             );
+            let now = Utc::now().naive_utc();
             let _ = diesel::update(EpisodeProgress::table())
                 .filter(episode_id.eq(episode.id))
                 .set((
                     listened_seconds.eq(elapsed_seconds as i32),
                     completed.eq(completed_listening),
-                    updated_at.eq(Utc::now().naive_utc()),
+                    updated_at.eq(now),
                 ))
                 .execute(&mut conn);
             let progress = episode_progresses
@@ -291,6 +293,14 @@ impl NewPlayer {
                 .first(&mut conn)
                 .unwrap();
             let _ = app_handle.send_invalidate_cache(EntityChange::EpisodeProgress(progress.id));
+            let updater: State<ProgressUpdater> = app_handle.state();
+            let _ = updater.submit_progress(ProgressUpdateRequest {
+                podcast_guid: podcast.guid,
+                episode_guid: episode.guid,
+                listened_seconds: elapsed_seconds as i32,
+                completed: completed_listening,
+                updated_at: now
+            });
         }
         let status = PlayerStatus {
             is_paused: paused,

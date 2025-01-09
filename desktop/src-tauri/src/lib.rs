@@ -18,6 +18,7 @@ use tauri::Manager;
 use tracing::Level;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::EnvFilter;
+use crate::progress_updater::ProgressUpdater;
 
 mod backend;
 mod commands;
@@ -35,6 +36,7 @@ mod navigation;
 mod player;
 mod schema;
 mod show_file_in_folder;
+mod progress_updater;
 
 #[allow(deprecated)]
 pub async fn run() {
@@ -79,6 +81,7 @@ pub async fn run() {
         })
         .setup(|app| {
             app.manage(EpisodeDownloads::new(app.handle().clone()));
+            app.manage(ProgressUpdater::new(app.handle().clone()));
             let player = Arc::new(Player::new(app.handle().clone()));
             let config_wrapper = app.state::<ConfigWrapper>();
             let config = config_wrapper.0.lock().unwrap();
