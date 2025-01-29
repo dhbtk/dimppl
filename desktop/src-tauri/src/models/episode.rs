@@ -3,7 +3,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use chrono::Utc;
@@ -253,7 +253,17 @@ pub async fn start_download(
         .set_progress(&episode, EpisodeDownloadProgress::default())
         .await;
 
-    let response = reqwest::get(&episode.content_url).await?;
+    let response_result = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()?
+        .get(&episode.content_url)
+        .send().await;
+    if let Err(response_result) = response_result {
+        tracing::warn!("Failed to download episode: {:?}", response_result);
+        progress_indicator.mark_done(episode_id).await;
+        return Ok(())
+    }
+    let response = response_result.unwrap();
     if !response.status().is_success() {
         progress_indicator.mark_done(episode_id).await;
         return Ok(()); // this is a lie tho

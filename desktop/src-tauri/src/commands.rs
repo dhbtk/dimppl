@@ -27,19 +27,12 @@ pub async fn list_all_podcasts() -> AppResult<Vec<Podcast>> {
     podcast::list_all(&mut connection)
 }
 
-pub async fn sync_podcasts_inner(app: AppHandle, config_wrapper: &ConfigWrapper) -> AppResult<()> {
-    let config = config_wrapper.0.lock().unwrap().clone();
-    let _ = app.emit("sync-podcasts-start", ());
-    tokio::spawn(async move {
-        let mut connection = db_connect();
+pub async fn sync_podcasts_inner(app: AppHandle, config: &Config) -> AppResult<()> {
+    let mut connection = db_connect();
 
-        podcast::sync_podcasts(&mut connection, &app).await.unwrap();
-        sync_to_backend(&config, &mut connection).await.unwrap();
-        invalidate_all_caches(app.clone(), &mut connection).await.unwrap();
-
-        let _ = app.emit("sync-podcasts-done", ());
-    });
-
+    podcast::sync_podcasts(&mut connection, &app).await?;
+    sync_to_backend(&config, &mut connection).await?;
+    invalidate_all_caches(app.clone(), &mut connection).await?;
     Ok(())
 }
 
@@ -64,7 +57,17 @@ pub async fn invalidate_all_caches(app: AppHandle, connection: &mut SqliteConnec
 
 #[tauri::command]
 pub async fn sync_podcasts(app: AppHandle, config_wrapper: tauri::State<'_, ConfigWrapper>) -> AppResult<()> {
-    sync_podcasts_inner(app, config_wrapper.deref()).await
+    let config = config_wrapper.0.lock().unwrap().clone();
+    let _ = app.emit("sync-podcasts-start", ());
+    tokio::spawn(async move {
+        if let Err(err) = sync_podcasts_inner(app.clone(), &config).await {
+            tracing::info!("Failed to sync_podcasts_inner: {:?}", err);
+        }
+
+        let _ = app.emit("sync-podcasts-done", ());
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
